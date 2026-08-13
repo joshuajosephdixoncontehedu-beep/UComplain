@@ -104,12 +104,30 @@ dotnet run --project src/CommunityIncidentReporting.Api
 The API listens on `http://localhost:5058` (see `launchSettings.json`). Swagger UI is
 available at `http://localhost:5058/swagger` in Development.
 
-Database migrations (added in Phase 1):
+Database migrations:
 
 ```powershell
 cd backend
+dotnet tool install --global dotnet-ef --version 9.0.19   # once per machine
 dotnet ef database update --project src/CommunityIncidentReporting.Infrastructure --startup-project src/CommunityIncidentReporting.Api
 ```
+
+This applies the schema **and** seeds Development data (one SuperAdmin, one admin per
+role, incident categories, fictional Sierra Leonean reporters/reports across every
+status, plus their verification events, assignments, notes, and audit logs) via EF
+Core's `UseSeeding`/`UseAsyncSeeding` hooks — seeding only runs once (it checks whether
+`admin_users` is already populated) and only in the Development environment.
+
+Seeding requires `SeedData__SuperAdminPassword` to be set (see `backend/.env.example`)
+— it is never hardcoded. Every seeded administrator account shares that one password
+for local development convenience:
+
+| Email | Role |
+| --- | --- |
+| aminata.kargbo@cirs.gov.sl | SuperAdmin |
+| mohamed.sesay@cirs.gov.sl | IncidentManager |
+| fatmata.koroma@cirs.gov.sl | Reviewer |
+| ibrahim.turay@cirs.gov.sl | ReadOnlyAnalyst |
 
 ## Running the frontend
 
@@ -143,9 +161,15 @@ npm test
 
 ## Project status
 
-Built in phases; see commit history for what's landed. Phase 0 (this commit) covers
-project scaffolding, CORS, and Swagger. Subsequent phases add the database schema and
-migrations, authentication, the core admin APIs, and the full admin UI.
+Built in phases; see commit history for what's landed.
+
+- **Phase 0**: project scaffolding, CORS, Swagger.
+- **Phase 1**: EF Core + Npgsql schema (10 entities), initial migration, Development
+  seed data, BCrypt password hashing, global exception-handling middleware
+  (`{ "error": { code, message, details? } }` envelope), a global FluentValidation
+  action filter, and Serilog request logging.
+
+Subsequent phases add authentication, the core admin APIs, and the full admin UI.
 
 ## Future WhatsApp integration
 

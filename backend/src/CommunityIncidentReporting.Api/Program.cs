@@ -1,4 +1,8 @@
+using CommunityIncidentReporting.Api.Filters;
+using CommunityIncidentReporting.Api.Middleware;
+using CommunityIncidentReporting.Infrastructure;
 using DotNetEnv;
+using FluentValidation;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -30,7 +34,15 @@ try
         .Enrich.FromLogContext()
         .WriteTo.Console());
 
-    builder.Services.AddControllers();
+    builder.Services.AddControllers(options => options.Filters.Add<ValidationFilter>());
+
+    builder.Services.AddValidatorsFromAssemblyContaining<
+        CommunityIncidentReporting.Application.Common.Interfaces.IPasswordHasher>();
+
+    builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
+
+    builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+    builder.Services.AddProblemDetails();
 
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddSwaggerGen(options =>
@@ -87,6 +99,7 @@ try
 
     var app = builder.Build();
 
+    app.UseExceptionHandler();
     app.UseSerilogRequestLogging();
 
     if (app.Environment.IsDevelopment())
