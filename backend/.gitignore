@@ -1,0 +1,37 @@
+# Build results
+bin/
+obj/
+out/
+
+# .NET
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.pidb
+
+# Rider / VS
+.vs/
+.idea/
+*.DotSettings.user
+
+# Test results
+[Tt]est[Rr]esult*/
+coverage*.info
+coverage*.xml
+*.trx
+
+# Secrets — never commit real environment values
+.env
+.env.local
+**/appsettings.*.local.json
+**/secrets.json
+
+# EF Core
+*.db
+*.db-shm
+*.db-wal
+
+# NuGet
+*.nupkg
+project.lock.json

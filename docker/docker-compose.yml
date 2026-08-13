@@ -1,0 +1,32 @@
+# Local orchestration for the admin portal. The database is Supabase-hosted Postgres —
+# not containerized here — so ConnectionStrings__DefaultConnection must point at your
+# Supabase project. Copy backend/.env.example and frontend/.env.example to real .env
+# files before running.
+#
+#   docker compose -f docker/docker-compose.yml --env-file ../backend/.env up --build
+
+services:
+  api:
+    build:
+      context: ../backend
+      dockerfile: ../docker/backend.Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection}
+      Jwt__Secret: ${Jwt__Secret}
+      Jwt__Issuer: ${Jwt__Issuer:-CommunityIncidentReportingSystem}
+      Jwt__Audience: ${Jwt__Audience:-CommunityIncidentReportingSystem.AdminPortal}
+      Cors__AllowedOrigins__0: http://localhost:3000
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/frontend.Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8080
+    depends_on:
+      - api

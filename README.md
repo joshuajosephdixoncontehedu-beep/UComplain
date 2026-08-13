@@ -1,0 +1,157 @@
+# Community Incident Reporting System — Admin Portal
+
+A web-based administration portal for a WhatsApp-enabled community incident reporting
+system. Community members will eventually report incidents through a WhatsApp chatbot
+(not built yet — see [`docs/whatsapp-integration-plan.md`](docs/whatsapp-integration-plan.md)).
+Every report must pass verification before it enters the active operational queue.
+Administrators use this portal to review verified cases, manage reports, users,
+administrator accounts, verification queues, analytics, and audit trails.
+
+This repository currently implements the **Admin Portal** — the web dashboard and its
+backing API — plus the database schema needed to receive WhatsApp reports later. The
+chatbot itself is intentionally out of scope for now.
+
+## Architecture
+
+```
+                 ┌─────────────────────────┐
+                 │   Next.js Admin Portal   │   (frontend/)
+                 │  React + TypeScript      │
+                 │  shadcn/ui + Recharts    │
+                 └────────────┬─────────────┘
+                              │ HTTPS (JSON, JWT bearer)
+                              ▼
+                 ┌─────────────────────────┐
+                 │  ASP.NET Core Web API    │   (backend/)
+                 │  Domain / Application /  │
+                 │  Infrastructure / Api    │
+                 └────────────┬─────────────┘
+                              │ EF Core + Npgsql
+                              ▼
+                 ┌─────────────────────────┐
+                 │  Supabase PostgreSQL     │
+                 └─────────────────────────┘
+```
+
+The frontend **never** talks to Supabase directly — it only ever calls the ASP.NET Core
+Web API, which is the sole owner of the database connection. See
+[`docs/architecture.md`](docs/architecture.md) for the full design and
+[`docs/api-contract.md`](docs/api-contract.md) for the endpoint contract.
+
+## Technology stack
+
+| Layer | Technology |
+| --- | --- |
+| Frontend | Next.js (App Router), React, TypeScript, Tailwind CSS |
+| Frontend UI | shadcn/ui, Lucide React icons, Recharts, TanStack Query |
+| Backend | ASP.NET Core Web API on .NET 9 |
+| Data access | Entity Framework Core + Npgsql (PostgreSQL) |
+| Database | Supabase PostgreSQL |
+| Auth | ASP.NET Core JWT bearer authentication, role-based authorization |
+| Logging | Serilog |
+| Validation | FluentValidation |
+| Password hashing | BCrypt |
+
+## Repository layout
+
+```
+community-incident-reporting-system/
+  frontend/     Next.js admin portal (App Router, src/ layout)
+  backend/      .NET 9 solution (Domain / Application / Infrastructure / Api)
+  docs/         Architecture, API contract, WhatsApp integration plan
+  docker/       Dockerfiles and docker-compose for local orchestration
+```
+
+See `frontend/README` sections below and `backend/` project files for details on each
+layer.
+
+## Prerequisites
+
+- Node.js 20+ and npm
+- .NET 9 SDK
+- A Supabase project (PostgreSQL connection string) — see [Supabase setup](#supabase-setup)
+- Git
+
+## Supabase setup
+
+1. Create a project at [supabase.com](https://supabase.com).
+2. In **Project Settings → Database**, copy the connection string (use the direct
+   connection, port `5432`, for this server-side EF Core workload — not the pooled
+   `6543` transaction pooler, since the API holds long-lived connections).
+3. Never commit the real connection string. Put it in
+   `backend/src/CommunityIncidentReporting.Api/.env` (see
+   [`backend/.env.example`](backend/.env.example)) or your shell environment as
+   `ConnectionStrings__DefaultConnection`.
+
+## Environment variables
+
+- Backend: copy [`backend/.env.example`](backend/.env.example) and fill in real values.
+  ASP.NET Core reads `Key__SubKey` style variables (double underscore) as nested
+  configuration. In Development, a `.env` file placed next to the `.csproj` is loaded
+  automatically (see `Program.cs`) — this is a local convenience only and never runs
+  outside Development.
+- Frontend: copy [`frontend/.env.example`](frontend/.env.example) to `frontend/.env.local`.
+
+## Running the backend
+
+```powershell
+cd backend
+dotnet restore
+dotnet build CommunityIncidentReporting.sln
+dotnet run --project src/CommunityIncidentReporting.Api
+```
+
+The API listens on `http://localhost:5058` (see `launchSettings.json`). Swagger UI is
+available at `http://localhost:5058/swagger` in Development.
+
+Database migrations (added in Phase 1):
+
+```powershell
+cd backend
+dotnet ef database update --project src/CommunityIncidentReporting.Infrastructure --startup-project src/CommunityIncidentReporting.Api
+```
+
+## Running the frontend
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+The app runs on `http://localhost:3000`.
+
+## Tests
+
+```powershell
+cd backend
+dotnet test
+```
+
+```powershell
+cd frontend
+npm test
+```
+
+## Local URLs
+
+| Service | URL |
+| --- | --- |
+| Frontend | http://localhost:3000 |
+| Backend API | http://localhost:5058 |
+| Swagger UI | http://localhost:5058/swagger |
+
+## Project status
+
+Built in phases; see commit history for what's landed. Phase 0 (this commit) covers
+project scaffolding, CORS, and Swagger. Subsequent phases add the database schema and
+migrations, authentication, the core admin APIs, and the full admin UI.
+
+## Future WhatsApp integration
+
+The chatbot is **not implemented**. The database schema (`Reporter`, `IncidentReport`,
+`VerificationEvent`, etc.) and `SourceChannel.WhatsApp` enum value are designed so a
+future WhatsApp webhook integration can create draft reports that flow into the same
+verification pipeline used by administrators today. See
+[`docs/whatsapp-integration-plan.md`](docs/whatsapp-integration-plan.md) for the planned
+webhook contract.

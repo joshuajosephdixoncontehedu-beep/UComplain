@@ -1,0 +1,13 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vs/
+.idea/
+*.swp
+
+# Environment files — never commit real secrets
+.env
+.env.local
+.env.*.local
