@@ -1,7 +1,9 @@
 using CommunityIncidentReporting.Application.Common.Interfaces;
+using CommunityIncidentReporting.Application.Features.Auth;
 using CommunityIncidentReporting.Infrastructure.Persistence;
 using CommunityIncidentReporting.Infrastructure.Persistence.Seeding;
 using CommunityIncidentReporting.Infrastructure.Security;
+using CommunityIncidentReporting.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -45,6 +47,18 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+
+        var jwtSecret = configuration["Jwt:Secret"];
+        if (string.IsNullOrWhiteSpace(jwtSecret) || jwtSecret.Length < 32)
+        {
+            throw new InvalidOperationException(
+                "Jwt:Secret is not configured or is shorter than 32 characters. Set Jwt__Secret to a long random " +
+                "value (see backend/.env.example) — e.g. `openssl rand -base64 64`.");
+        }
+
+        services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IAuthService, AuthService>();
 
         return services;
     }

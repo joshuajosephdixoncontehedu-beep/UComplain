@@ -1,8 +1,13 @@
+using System.Text;
+using CommunityIncidentReporting.Api.Authorization;
 using CommunityIncidentReporting.Api.Filters;
 using CommunityIncidentReporting.Api.Middleware;
+using CommunityIncidentReporting.Domain.Enums;
 using CommunityIncidentReporting.Infrastructure;
 using DotNetEnv;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 
@@ -93,9 +98,29 @@ try
         });
     });
 
-    // Authentication/authorization scheme configuration (JWT bearer + role policies) is added in Phase 2.
-    builder.Services.AddAuthentication();
-    builder.Services.AddAuthorization();
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                ValidateAudience = true,
+                ValidAudience = builder.Configuration["Jwt:Audience"],
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!)),
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(1)
+            };
+        });
+
+    builder.Services.AddAuthorizationBuilder()
+        .AddPolicy(Policies.SuperAdminOnly, p => p.RequireRole(nameof(AdminRole.SuperAdmin)))
+        .AddPolicy(Policies.ManagerOrAbove, p => p.RequireRole(
+            nameof(AdminRole.SuperAdmin), nameof(AdminRole.IncidentManager)))
+        .AddPolicy(Policies.ReviewerOrAbove, p => p.RequireRole(
+            nameof(AdminRole.SuperAdmin), nameof(AdminRole.IncidentManager), nameof(AdminRole.Reviewer)));
 
     var app = builder.Build();
 
@@ -135,3 +160,7 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Exposes the top-level-statement Program for CommunityIncidentReporting.Api.Tests'
+// WebApplicationFactory<Program> integration tests.
+public partial class Program;

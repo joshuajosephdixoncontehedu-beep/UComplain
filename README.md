@@ -167,9 +167,18 @@ Built in phases; see commit history for what's landed.
 - **Phase 1**: EF Core + Npgsql schema (10 entities), initial migration, Development
   seed data, BCrypt password hashing, global exception-handling middleware
   (`{ "error": { code, message, details? } }` envelope), a global FluentValidation
-  action filter, and Serilog request logging.
+  filter, and Serilog request logging.
+- **Phase 2**: JWT authentication (`/api/admin/auth/login|refresh|logout|me`) with
+  rotating, server-revocable refresh tokens (SHA-256 hashed, never stored raw), and
+  three role-based authorization policies (`SuperAdminOnly`, `ManagerOrAbove`,
+  `ReviewerOrAbove`) built on ASP.NET Core's `RequireRole`. No public registration —
+  administrator accounts are only ever created by a SuperAdmin (Phase 3). Requires
+  `Jwt__Secret` to be set to a random value at least 32 characters long (see
+  `backend/.env.example`); the API fails fast at startup with a clear message if it
+  isn't. 29 backend tests (unit + `WebApplicationFactory` integration tests against
+  an isolated EF Core InMemory database).
 
-Subsequent phases add authentication, the core admin APIs, and the full admin UI.
+Subsequent phases add the core admin APIs and the full admin UI.
 
 ## Future WhatsApp integration
 
