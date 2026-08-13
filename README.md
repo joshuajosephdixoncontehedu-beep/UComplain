@@ -177,8 +177,22 @@ Built in phases; see commit history for what's landed.
   `backend/.env.example`); the API fails fast at startup with a clear message if it
   isn't. 29 backend tests (unit + `WebApplicationFactory` integration tests against
   an isolated EF Core InMemory database).
+- **Phase 3**: every endpoint in `docs/api-contract.md` — Dashboard, Reports,
+  Verification queue, Users (reporters), Administrators, Categories, Analytics
+  (incl. CSV export), Audit Logs, Settings. All list endpoints are paginated,
+  filtered, and sorted server-side (whitelisted sort columns, no dynamic-LINQ
+  dependency). Every mutation writes an `AuditLog` row via a shared `IAuditLogger`.
+  The operational `/reports` queue is hard-coded to `VerificationStatus == Verified`
+  — non-Verified reports are only reachable via `/verification-queue`, which never
+  produces an automated "false report" verdict; every decision requires a human
+  action recorded with who/when/why. Case-status transitions are validated against
+  an explicit allowed-transitions map (e.g. `UnderReview` can't jump straight to
+  `Resolved`). A `SystemSettings` singleton row (get-or-create, no seed migration
+  needed) backs `/settings`. Business rules enforced at the service layer include
+  duplicate-email rejection on administrator creation and blocking deactivation of
+  the last active SuperAdmin. 40 backend tests passing.
 
-Subsequent phases add the core admin APIs and the full admin UI.
+Subsequent phases add the full admin UI.
 
 ## Future WhatsApp integration
 

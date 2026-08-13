@@ -1,5 +1,14 @@
 using CommunityIncidentReporting.Application.Common.Interfaces;
+using CommunityIncidentReporting.Application.Features.Administrators;
 using CommunityIncidentReporting.Application.Features.Auth;
+using CommunityIncidentReporting.Application.Features.Analytics;
+using CommunityIncidentReporting.Application.Features.AuditLogs;
+using CommunityIncidentReporting.Application.Features.Categories;
+using CommunityIncidentReporting.Application.Features.Dashboard;
+using CommunityIncidentReporting.Application.Features.Reporters;
+using CommunityIncidentReporting.Application.Features.Reports;
+using CommunityIncidentReporting.Application.Features.Settings;
+using CommunityIncidentReporting.Application.Features.Verification;
 using CommunityIncidentReporting.Infrastructure.Persistence;
 using CommunityIncidentReporting.Infrastructure.Persistence.Seeding;
 using CommunityIncidentReporting.Infrastructure.Security;
@@ -59,6 +68,16 @@ public static class DependencyInjection
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAuditLogger, AuditLogger>();
+        services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<IAdministratorService, AdministratorService>();
+        services.AddScoped<IReporterService, ReporterService>();
+        services.AddScoped<IIncidentReportService, IncidentReportService>();
+        services.AddScoped<IVerificationService, VerificationService>();
+        services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IAnalyticsService, AnalyticsService>();
+        services.AddScoped<IAuditLogQueryService, AuditLogQueryService>();
+        services.AddScoped<ISettingsService, SettingsService>();
 
         return services;
     }
