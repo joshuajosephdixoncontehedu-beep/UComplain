@@ -190,6 +190,78 @@ percent-change and duration formatting.
 | Backend API | http://localhost:5058 |
 | Swagger UI | http://localhost:5058/swagger |
 
+## Deployment
+
+Backend on [Render](https://render.com) as a Docker web service; frontend on
+[Vercel](https://vercel.com), Vercel's native platform for Next.js. Neither needs the
+other running locally — the frontend only ever calls the backend's public URL.
+
+### Backend (Render)
+
+The backend has its own `backend/Dockerfile` (multi-stage: `dotnet publish` in an SDK
+image, running on the slimmer ASP.NET runtime image) and a `render.yaml` Blueprint at
+the repo root for one-click setup. Either:
+
+- **Blueprint**: Render dashboard → New → Blueprint → point at this repo. Render reads
+  `render.yaml` and creates the service, prompting for the `sync: false` variables
+  below.
+- **Manual**: Render dashboard → New → Web Service → connect this repo → **Language:
+  Docker** → **Root Directory: `backend`** → **Dockerfile Path: `./Dockerfile`** →
+  **Health Check Path: `/health`**.
+
+Either way, set these environment variables on the service (never commit real values
+for any of these — same rule as the local `.env`):
+
+| Variable | Value |
+| --- | --- |
+| `ASPNETCORE_ENVIRONMENT` | `Production` |
+| `ConnectionStrings__DefaultConnection` | The Supabase connection string (session pooler or direct — see [Supabase setup](#supabase-setup)) |
+| `Jwt__Secret` | A long random value **different from the local dev one** — generate with `openssl rand -base64 64` or PowerShell's `RandomNumberGenerator` |
+| `Jwt__Issuer` | `UComplain` |
+| `Jwt__Audience` | `UComplain.AdminPortal` |
+| `Jwt__AccessTokenMinutes` | `15` |
+| `Jwt__RefreshTokenDays` | `7` |
+| `Cors__AllowedOrigins__0` | The deployed Vercel frontend URL, e.g. `https://ucomplain.vercel.app` (exact match, no trailing slash) |
+
+Render assigns the container a port via the `$PORT` environment variable at runtime —
+`Program.cs` reads it and binds Kestrel there directly, so nothing extra is needed on
+Render's side for that. `Program.cs` also trusts `X-Forwarded-Proto`/`X-Forwarded-For`
+from Render's edge proxy, so `UseHttpsRedirection()` and audit-log IP addresses both
+behave correctly behind it.
+
+**Migrations are not applied automatically in Production** — the Development-only
+auto-`Migrate()` startup hook (see [Database migrations](#running-the-backend)) is
+intentionally scoped out of Production, the same way it's scoped out of Testing. Apply
+new migrations to Supabase from a dev machine before or after deploying a schema
+change: `dotnet ef database update --project src/CommunityIncidentReporting.Infrastructure
+--startup-project src/CommunityIncidentReporting.Api`, with
+`ConnectionStrings__DefaultConnection` pointed at Supabase.
+
+Free-tier Render web services spin down after inactivity — the first request after an
+idle period can take 30–60 seconds to respond while it cold-starts. Not addressed here
+(e.g. with an external keep-alive ping); worth knowing about if a demo needs to be
+snappy on first load.
+
+### Frontend (Vercel)
+
+Vercel auto-detects Next.js — no Dockerfile or `vercel.json` needed. Since this repo is
+a monorepo (`frontend/` and `backend/` as siblings), the one required non-default
+setting is:
+
+- Vercel dashboard → New Project → import this repo → **Root Directory: `frontend`**.
+
+Environment variable to set on the Vercel project:
+
+| Variable | Value |
+| --- | --- |
+| `NEXT_PUBLIC_API_BASE_URL` | The deployed Render backend URL, e.g. `https://ucomplain-api.onrender.com` (no trailing slash) |
+
+Vercel's preview deployments (per-branch/PR URLs) get a different origin than the
+production URL each time. The backend's CORS only allow-lists exact origins
+(`Cors__AllowedOrigins__0`, `__1`, …), so preview deployments won't be able to call the
+API unless their specific origin is added too — fine for a production-only setup,
+worth knowing if previews need to hit a live backend.
+
 ## Project status
 
 Built in phases; see commit history for what's landed.

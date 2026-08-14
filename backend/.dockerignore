@@ -1,0 +1,10 @@
+bin/
+obj/
+tests/
+**/.env
+**/.env.*
+supabase-bootstrap.sql
+.vs/
+.idea/
+*.user
+[Tt]est[Rr]esult*/

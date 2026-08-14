@@ -7,6 +7,7 @@ using CommunityIncidentReporting.Infrastructure;
 using DotNetEnv;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -33,6 +34,16 @@ Log.Logger = new LoggerConfiguration()
 try
 {
     var builder = WebApplication.CreateBuilder(args);
+
+    // Render (and most container PaaS hosts) assign a dynamic port via $PORT and expect
+    // the app to bind to it — there's no way to know it ahead of time, so it can't be
+    // baked into appsettings/launchSettings. Only takes effect when PORT is actually set,
+    // so local dev (dotnet run, launchSettings.json) is unaffected.
+    var port = Environment.GetEnvironmentVariable("PORT");
+    if (!string.IsNullOrEmpty(port))
+    {
+        builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
+    }
 
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
@@ -126,6 +137,21 @@ try
             nameof(AdminRole.SuperAdmin), nameof(AdminRole.IncidentManager), nameof(AdminRole.Reviewer)));
 
     var app = builder.Build();
+
+    // Render (and similar PaaS hosts) terminate TLS at their edge and forward plain HTTP
+    // to the container, tagging the original scheme/client IP via X-Forwarded-* headers.
+    // Without this, UseHttpsRedirection() below would see every request as HTTP and
+    // redirect-loop, and audit log IPs would show the platform's internal proxy instead
+    // of the real client. Known-proxy allowlists are cleared because the container never
+    // receives traffic except through that one trusted proxy hop — there's no direct path
+    // for an external client to spoof these headers.
+    var forwardedHeaderOptions = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    };
+    forwardedHeaderOptions.KnownNetworks.Clear();
+    forwardedHeaderOptions.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwardedHeaderOptions);
 
     app.UseExceptionHandler();
     app.UseSerilogRequestLogging();
