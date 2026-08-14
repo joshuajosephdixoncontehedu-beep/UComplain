@@ -229,6 +229,14 @@ Render's side for that. `Program.cs` also trusts `X-Forwarded-Proto`/`X-Forwarde
 from Render's edge proxy, so `UseHttpsRedirection()` and audit-log IP addresses both
 behave correctly behind it.
 
+Unlike the auto-migrate hook below, **Swagger is intentionally not Development-only** —
+it's served in every environment, including the deployed Render instance
+(`https://<your-render-service>.onrender.com/swagger`), so the live API is
+self-documenting. It only exposes interactive API documentation; every endpoint still
+requires a real JWT the same as any other client, so this doesn't bypass auth or leak
+secrets — just the API surface itself, which is a deliberate tradeoff worth knowing
+about if the API needs to stay unlisted.
+
 **Migrations are not applied automatically in Production** — the Development-only
 auto-`Migrate()` startup hook (see [Database migrations](#running-the-backend)) is
 intentionally scoped out of Production, the same way it's scoped out of Testing. Apply

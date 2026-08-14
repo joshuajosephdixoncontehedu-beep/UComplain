@@ -156,22 +156,28 @@ try
     app.UseExceptionHandler();
     app.UseSerilogRequestLogging();
 
+    // Deliberately not gated to Development: exposed in every environment (including
+    // Production on Render) so the live API is self-documenting. It only serves
+    // interactive documentation and lets a caller try requests — every endpoint still
+    // requires a real JWT the same way it would via curl/Postman, so this doesn't
+    // bypass auth or expose secrets, just the API surface itself.
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "UComplain API v1");
+        options.DocumentTitle = "UComplain Admin API";
+    });
+
     if (app.Environment.IsDevelopment())
     {
-        app.UseSwagger();
-        app.UseSwaggerUI(options =>
-        {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", "UComplain API v1");
-            options.DocumentTitle = "UComplain Admin API";
-        });
-
         // dotnet ef database update (and migrations add) always go through
         // DesignTimeDbContextFactory, not this app's DI container — so the
         // UseSeeding/UseAsyncSeeding hooks configured in AddInfrastructure never run
         // via the CLI. Calling Migrate() here, on the real DI-resolved context, applies
         // any pending migrations and runs those seeding hooks. Migrate() is idempotent
         // and the seeder checks for existing data first, so this is safe on every
-        // Development startup, not just the first.
+        // Development startup, not just the first. Stays Development-only — Production
+        // (Render) and Testing must never auto-migrate or auto-seed.
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<CommunityIncidentReporting.Infrastructure.Persistence.AppDbContext>();
