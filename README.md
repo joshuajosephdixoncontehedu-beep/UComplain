@@ -164,13 +164,15 @@ cd backend
 dotnet test
 ```
 
-46 tests: unit tests (BCrypt hashing, auth service) and `WebApplicationFactory`
+52 tests: unit tests (BCrypt hashing, auth service) and `WebApplicationFactory`
 integration tests covering login/refresh/logout token rotation, the four
 role-based authorization policies, the verification-first business rule
 (non-Verified reports never appear in `/reports`), every verification decision
 outcome (including the required-reason validation), legal/illegal case-status
-transitions, assignment, audit-log writes, and the last-active-SuperAdmin
-protection.
+transitions, assignment, audit-log writes, the last-active-SuperAdmin protection,
+and the WhatsApp webhook (signature verification, the GET handshake, reporter
+reuse across messages, and non-text messages being skipped without creating a
+report).
 
 ```powershell
 cd frontend
@@ -222,6 +224,12 @@ for any of these — same rule as the local `.env`):
 | `Jwt__AccessTokenMinutes` | `15` |
 | `Jwt__RefreshTokenDays` | `7` |
 | `Cors__AllowedOrigins__0` | The deployed Vercel frontend URL, e.g. `https://ucomplain.vercel.app` (exact match, no trailing slash) |
+| `WhatsApp__AppSecret` | Meta App → App Settings → Basic → App Secret (optional — inbound webhook calls just fail signature verification without it) |
+| `WhatsApp__VerifyToken` | Any string you choose, entered again in Meta's webhook setup form |
+| `WhatsApp__AccessToken` | Meta App → WhatsApp → API Setup → access token (optional — skips sending the outbound reply without it) |
+| `WhatsApp__PhoneNumberId` | Meta App → WhatsApp → API Setup → phone number ID |
+| `WhatsApp__ApiVersion` | `v21.0` |
+| `WhatsApp__NumberHashKey` | A long random value, generated once — see [`docs/whatsapp-integration-plan.md`](docs/whatsapp-integration-plan.md) |
 
 Render assigns the container a port via the `$PORT` environment variable at runtime —
 `Program.cs` reads it and binds Kestrel there directly, so nothing extra is needed on

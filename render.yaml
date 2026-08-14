@@ -32,3 +32,15 @@ services:
         value: "7"
       - key: Cors__AllowedOrigins__0
         sync: false
+      - key: WhatsApp__AppSecret
+        sync: false
+      - key: WhatsApp__VerifyToken
+        sync: false
+      - key: WhatsApp__AccessToken
+        sync: false
+      - key: WhatsApp__PhoneNumberId
+        sync: false
+      - key: WhatsApp__ApiVersion
+        value: v21.0
+      - key: WhatsApp__NumberHashKey
+        sync: false

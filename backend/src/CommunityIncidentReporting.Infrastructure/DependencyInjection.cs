@@ -9,10 +9,12 @@ using CommunityIncidentReporting.Application.Features.Reporters;
 using CommunityIncidentReporting.Application.Features.Reports;
 using CommunityIncidentReporting.Application.Features.Settings;
 using CommunityIncidentReporting.Application.Features.Verification;
+using CommunityIncidentReporting.Application.Features.Webhooks;
 using CommunityIncidentReporting.Infrastructure.Persistence;
 using CommunityIncidentReporting.Infrastructure.Persistence.Seeding;
 using CommunityIncidentReporting.Infrastructure.Security;
 using CommunityIncidentReporting.Infrastructure.Services;
+using CommunityIncidentReporting.Infrastructure.WhatsApp;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -78,6 +80,10 @@ public static class DependencyInjection
         services.AddScoped<IAnalyticsService, AnalyticsService>();
         services.AddScoped<IAuditLogQueryService, AuditLogQueryService>();
         services.AddScoped<ISettingsService, SettingsService>();
+
+        services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
+        services.AddHttpClient();
+        services.AddScoped<IWhatsAppWebhookService, WhatsAppWebhookService>();
 
         return services;
     }
