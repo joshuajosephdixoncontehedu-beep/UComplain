@@ -1,4 +1,4 @@
-import { CaseStatus, IncidentPriority, VerificationStatus } from "@/types/enums";
+import { CaseStatus, IncidentPriority, VerificationDecisionResult, VerificationStatus } from "@/types/enums";
 
 /**
  * Consistent badge coloring for every status/priority value across the app — one
@@ -66,6 +66,19 @@ export function priorityTone(priority: IncidentPriority): BadgeTone {
   }
 }
 
+export function verificationResultTone(result: VerificationDecisionResult): BadgeTone {
+  switch (result) {
+    case VerificationDecisionResult.Approved:
+      return "green";
+    case VerificationDecisionResult.ClarificationRequested:
+    case VerificationDecisionResult.Escalated:
+      return "amber";
+    case VerificationDecisionResult.Rejected:
+    case VerificationDecisionResult.MarkedDuplicate:
+      return "red";
+  }
+}
+
 const statusLabels: Record<string, string> = {
   VerificationPending: "Verification Pending",
   UnderReview: "Under Review",
@@ -73,6 +86,8 @@ const statusLabels: Record<string, string> = {
   NeedsClarification: "Needs Clarification",
   SuspectedDuplicate: "Suspected Duplicate",
   FlaggedAbuse: "Flagged Abuse",
+  ClarificationRequested: "Clarification Requested",
+  MarkedDuplicate: "Marked Duplicate",
 };
 
 /** "UnderReview" -> "Under Review"; falls back to the raw value for already-spaced names. */

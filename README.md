@@ -258,6 +258,32 @@ Built in phases; see commit history for what's landed.
   A fifth bug — Base UI's `DropdownMenuLabel` requiring a `DropdownMenuGroup`
   ancestor, unlike the old Radix-based pattern — was caught the same way, via a
   real click in a real browser throwing a real console error.
+- **Phase 6**: `/reports` and `/reports/[id]`, and `/verification`. The reports list
+  is server-side paginated, filtered (search, category, priority, status, assigned
+  admin, location, date range — synced to the URL so links like the dashboard's
+  `?caseStatus=UnderReview` pre-populate the filter bar), and sortable; role-gated
+  bulk assignment lets a Manager-or-above select rows and assign them to an
+  administrator in one action, executed as parallel calls against the existing
+  single-report endpoint (`Promise.allSettled`, reporting partial failures) rather
+  than adding a bulk endpoint the API doesn't have. The detail page shows full
+  report data, masked reporter contact (with a restricted-reporter warning badge),
+  verification and status history timelines, an internal-notes thread, an
+  assignment panel, and a read-only audit trail — its status-change buttons are
+  generated from a frontend copy of the backend's exact allowed-transitions map
+  (`lib/utils/caseStatusTransitions.ts`) so the UI never offers a transition the
+  API would reject, and every status change and verification decision goes through
+  a confirmation dialog that records an optional (for approvals) or required (for
+  every other outcome) reason. The verification queue is tabbed by
+  `VerificationStatus` (Pending / Needs Clarification / Suspected Duplicate /
+  Flagged Abuse / Rejected) with an SLA age indicator per row (elapsed time vs. the
+  report's category SLA hours) and a decision menu covering all five verification
+  actions, each opening a dialog that mirrors the reports detail page's
+  reason-required pattern. No backend changes were needed this phase — Phase 3's
+  API surface already covered every action the UI needed. Verified end-to-end in a
+  real headless-browser session against real seeded Postgres data: filtering,
+  sorting, note-adding, and a full verification decision (Pending → Needs
+  Clarification, with the queue tab counts updating live) all confirmed with zero
+  console errors.
 
 Subsequent phases add the full admin UI.
 
