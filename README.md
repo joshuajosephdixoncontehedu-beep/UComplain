@@ -156,10 +156,23 @@ cd backend
 dotnet test
 ```
 
+46 tests: unit tests (BCrypt hashing, auth service) and `WebApplicationFactory`
+integration tests covering login/refresh/logout token rotation, the four
+role-based authorization policies, the verification-first business rule
+(non-Verified reports never appear in `/reports`), every verification decision
+outcome (including the required-reason validation), legal/illegal case-status
+transitions, assignment, audit-log writes, and the last-active-SuperAdmin
+protection.
+
 ```powershell
 cd frontend
 npm test
 ```
+
+Vitest unit tests for the pure utility logic that isn't just glue code: the
+case-status-transition map mirrored from the backend, the SLA age calculation
+used in the verification queue, badge-tone/label mapping, and the dashboard's
+percent-change and duration formatting.
 
 ## Local URLs
 
@@ -346,7 +359,57 @@ Built in phases; see commit history for what's landed.
   final run. `dotnet test` still 40/40 after the `CategoryService` change; `tsc
   --noEmit`, `eslint`, and `next build` all clean.
 
-Phase 8 (testing, security/accessibility review, and documentation) is next.
+- **Phase 8**: testing, security/accessibility review, and documentation — the last
+  phase, closing out the project.
+  - **Backend tests**: added a new `CategoriesAndAuditLogTests` suite (46 tests
+    total, up from 40) with two regression tests for the Phase 7 bugs (the
+    audit-logs route, and category duplicate-name handling — including that the
+    error response never leaks the underlying `Npgsql`/EF Core exception text)
+    plus the first direct assertions that a mutation actually writes an
+    `AuditLog` row and that `/audit-logs` filters by entity type. The rest of the
+    suite (auth, the four role policies, the verification-first rule, every
+    verification decision outcome, status transitions, assignment, the
+    last-SuperAdmin protection) was already in place from earlier phases.
+  - **Frontend tests**: no test tooling existed yet, so this phase added Vitest
+    (`npm test`) with unit tests for the pure utility logic that carries real
+    business rules — the case-status-transition map mirrored from the backend,
+    the SLA age calculation, badge tone/label mapping, and the dashboard's
+    percent-change/duration formatting. Deliberately scoped to logic, not
+    component rendering: the app's components are thin wrappers around
+    TanStack Query and react-hook-form, where the interesting behavior is
+    already covered by the Playwright sessions run at the end of every phase
+    since 5, and a from-scratch RTL/jsdom setup for ~40 route/dialog components
+    would have cost more than it returned at this stage.
+  - **Accessibility**: audited every icon-only button for `aria-label` (all
+    already had one) and found one real gap — the audit-log table's rows used
+    `onClick` with no keyboard equivalent, so a keyboard-only user could open
+    the reports list or the reporter detail page (both use real `<Link>`s) but
+    not an audit-log entry's detail dialog. Fixed with `role="button"`,
+    `tabIndex={0}`, an `onKeyDown` handler for Enter/Space, a focus-visible
+    ring, and a descriptive `aria-label`. Forms, dialogs, and menus already get
+    labeled fields, focus trapping, and keyboard navigation for free from Base
+    UI; chart colors were validated for colorblind/contrast safety back in
+    Phase 5.
+  - **Security review**: confirmed no `.env` files or real secrets are
+    tracked by git (`.gitignore` covers both frontend and backend env files;
+    the only committed connection-string-shaped strings are placeholder
+    schema-only/test values already documented as such). Confirmed
+    `GlobalExceptionHandler` only includes exception detail in error responses
+    when `IHostEnvironment.IsProduction()` is false — Production always gets
+    the generic message. The Phase 7 category-duplicate-name fix (see above)
+    removed the one place where a real, reachable request could produce a
+    500 with an internal stack trace attached.
+  - **Docs**: added [`docs/whatsapp-integration-plan.md`](docs/whatsapp-integration-plan.md)
+    — a webhook contract and data-mapping plan only, no chatbot implementation,
+    covering the new endpoint, signature verification, the `Reporter`/
+    `IncidentReport` field mapping, consent, idempotency, and what's explicitly
+    out of scope (conversation state, media storage, outbound notifications).
+  - **Final visual-consistency pass**: screenshotted every route (desktop and
+    a mobile viewport on two representative pages) in a real browser against
+    real seeded data — zero console errors, consistent spacing/typography/
+    color usage throughout, and the "last active SuperAdmin can't be
+    deactivated" rule correctly reflected as a disabled button, not just a
+    server-side rejection.
 
 ## Future WhatsApp integration
 

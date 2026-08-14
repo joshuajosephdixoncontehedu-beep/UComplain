@@ -125,8 +125,17 @@ export default function AuditLogsPage() {
                 {data.items.map((entry) => (
                   <TableRow
                     key={entry.id}
-                    className="cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`View details for ${humanizePascalCase(entry.action)} at ${formatDateTime(entry.createdAt)}`}
+                    className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                     onClick={() => setSelectedEntry(entry)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedEntry(entry);
+                      }
+                    }}
                   >
                     <TableCell className="text-muted-foreground">{formatDateTime(entry.createdAt)}</TableCell>
                     <TableCell>{entry.adminUserName ?? "System"}</TableCell>
