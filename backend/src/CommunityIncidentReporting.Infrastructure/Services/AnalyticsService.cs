@@ -79,18 +79,21 @@ public class AnalyticsService(AppDbContext db, IDashboardService dashboardServic
             .Select(a => new { a.Id, a.FullName })
             .ToListAsync(cancellationToken);
 
-        var openCounts = await db.IncidentReports
+        // GroupBy is applied client-side (see DashboardService's similar notes) — safer
+        // and consistent, even though these particular groupings are on a plain Guid?
+        // column rather than a converted enum or joined navigation.
+        var openAdminIds = await db.IncidentReports
             .Where(r => r.AssignedAdminId != null && OpenStatuses.Contains(r.CaseStatus))
-            .GroupBy(r => r.AssignedAdminId)
-            .Select(g => new { AdminId = g.Key!.Value, Count = g.Count() })
+            .Select(r => r.AssignedAdminId!.Value)
             .ToListAsync(cancellationToken);
+        var openCounts = openAdminIds.GroupBy(id => id).Select(g => new { AdminId = g.Key, Count = g.Count() }).ToList();
 
-        var resolvedCounts = await db.IncidentReports
+        var resolvedAdminIds = await db.IncidentReports
             .Where(r => r.AssignedAdminId != null && ResolvedStatuses.Contains(r.CaseStatus)
                 && r.UpdatedAt >= fromUtc && r.UpdatedAt <= toUtc)
-            .GroupBy(r => r.AssignedAdminId)
-            .Select(g => new { AdminId = g.Key!.Value, Count = g.Count() })
+            .Select(r => r.AssignedAdminId!.Value)
             .ToListAsync(cancellationToken);
+        var resolvedCounts = resolvedAdminIds.GroupBy(id => id).Select(g => new { AdminId = g.Key, Count = g.Count() }).ToList();
 
         return admins.Select(a => new AssignmentWorkloadDto(
             a.Id, a.FullName,

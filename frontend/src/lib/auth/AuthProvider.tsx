@@ -19,6 +19,32 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+// Module-level (not component-level) so React StrictMode's intentional double-invoke
+// of effects in development can't fire two concurrent restore attempts — the refresh
+// token is single-use, so a second concurrent call with the same token always fails
+// right after the first one succeeds and rotates it.
+let restoreSessionInFlight: Promise<void> | null = null;
+
+function restoreSessionOnce(): Promise<void> {
+  restoreSessionInFlight ??= (async () => {
+    const storedRefreshToken = readRefreshToken();
+    if (!storedRefreshToken) return;
+
+    try {
+      const tokens = await refreshRequest(storedRefreshToken);
+      setSession(tokens.accessToken, tokens.admin);
+      const rememberMe = window.localStorage.getItem("cirs_refresh_token") !== null;
+      saveRefreshToken(tokens.refreshToken, rememberMe);
+    } catch {
+      clearRefreshToken();
+    }
+  })().finally(() => {
+    restoreSessionInFlight = null;
+  });
+
+  return restoreSessionInFlight;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [isInitializing, setIsInitializing] = useState(true);
@@ -29,27 +55,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    async function tryRestoreSession() {
-      const storedRefreshToken = readRefreshToken();
-      if (!storedRefreshToken) {
-        setIsInitializing(false);
-        return;
-      }
+    restoreSessionOnce().finally(() => {
+      if (!cancelled) setIsInitializing(false);
+    });
 
-      try {
-        const tokens = await refreshRequest(storedRefreshToken);
-        if (cancelled) return;
-        setSession(tokens.accessToken, tokens.admin);
-        const rememberMe = window.localStorage.getItem("cirs_refresh_token") !== null;
-        saveRefreshToken(tokens.refreshToken, rememberMe);
-      } catch {
-        clearRefreshToken();
-      } finally {
-        if (!cancelled) setIsInitializing(false);
-      }
-    }
-
-    void tryRestoreSession();
     return () => {
       cancelled = true;
     };

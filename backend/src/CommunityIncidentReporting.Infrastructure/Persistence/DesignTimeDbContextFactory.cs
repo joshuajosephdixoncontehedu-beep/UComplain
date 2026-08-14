@@ -4,18 +4,27 @@ using Microsoft.EntityFrameworkCore.Design;
 namespace CommunityIncidentReporting.Infrastructure.Persistence;
 
 /// <summary>
-/// Lets `dotnet ef migrations add` build the model and generate a migration without
-/// running the full Api host (which requires a real Supabase connection string and
-/// other configuration). Never used at runtime — only by the `dotnet ef` CLI. The
-/// placeholder connection string below is never connected to; migration generation only
-/// inspects the model.
+/// Used by every `dotnet ef` CLI command (migrations add AND database update) — the
+/// CLI prefers a discoverable IDesignTimeDbContextFactory over building the full Api
+/// host, so this is the only place those commands ever read a connection string from,
+/// regardless of what Program.cs would otherwise wire up. It reads
+/// ConnectionStrings__DefaultConnection from the environment so `dotnet ef database
+/// update` targets a real database when one is configured; `dotnet ef migrations add`
+/// only inspects the model, so it works fine with the placeholder when no real
+/// connection string is set.
 /// </summary>
 public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
 {
     public AppDbContext CreateDbContext(string[] args)
     {
+        var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            connectionString = "Host=localhost;Database=design_time_only;Username=postgres;Password=postgres";
+        }
+
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
-        optionsBuilder.UseNpgsql("Host=localhost;Database=design_time_only;Username=postgres;Password=postgres");
+        optionsBuilder.UseNpgsql(connectionString);
         return new AppDbContext(optionsBuilder.Options);
     }
 }

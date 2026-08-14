@@ -102,13 +102,21 @@ public class DashboardService(AppDbContext db) : IDashboardService
     }
 
     private async Task<IReadOnlyList<NamedCountDto>> GetCategoryDistributionAsync(
-        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
-        await db.IncidentReports
+        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken)
+    {
+        // GroupBy translation over a joined navigation (Category.Name) is unreliable
+        // in EF Core/Npgsql — see VerificationService's note on the same issue. Fetch
+        // the raw category names and group client-side instead.
+        var raw = await db.IncidentReports
             .Where(r => r.CreatedAt >= fromUtc && r.CreatedAt <= toUtc)
-            .GroupBy(r => r.Category!.Name)
+            .Select(r => r.Category!.Name)
+            .ToListAsync(cancellationToken);
+
+        return raw.GroupBy(name => name)
             .Select(g => new NamedCountDto(g.Key, g.Count()))
             .OrderByDescending(x => x.Count)
-            .ToListAsync(cancellationToken);
+            .ToList();
+    }
 
     private async Task<IReadOnlyList<NamedCountDto>> GetStatusDistributionAsync(
         DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken)
@@ -139,14 +147,19 @@ public class DashboardService(AppDbContext db) : IDashboardService
     }
 
     private async Task<IReadOnlyList<NamedCountDto>> GetTopHotspotsAsync(
-        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken) =>
-        await db.IncidentReports
+        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken)
+    {
+        var raw = await db.IncidentReports
             .Where(r => r.CreatedAt >= fromUtc && r.CreatedAt <= toUtc)
-            .GroupBy(r => r.LocationDescription)
+            .Select(r => r.LocationDescription)
+            .ToListAsync(cancellationToken);
+
+        return raw.GroupBy(location => location)
             .Select(g => new NamedCountDto(g.Key, g.Count()))
             .OrderByDescending(x => x.Count)
             .Take(10)
-            .ToListAsync(cancellationToken);
+            .ToList();
+    }
 
     private async Task<IReadOnlyList<PriorityReportItemDto>> GetPriorityReportsAsync(CancellationToken cancellationToken) =>
         await db.IncidentReports
@@ -171,11 +184,14 @@ public class DashboardService(AppDbContext db) : IDashboardService
 
     private async Task<VerificationQueueSnapshotDto> GetVerificationQueueSnapshotAsync(CancellationToken cancellationToken)
     {
-        var counts = await db.IncidentReports
+        var raw = await db.IncidentReports
             .Where(r => r.VerificationStatus != VerificationStatus.Verified)
-            .GroupBy(r => r.VerificationStatus)
-            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .Select(r => r.VerificationStatus)
             .ToListAsync(cancellationToken);
+
+        var counts = raw.GroupBy(status => status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToList();
 
         int CountFor(VerificationStatus status) => counts.FirstOrDefault(c => c.Status == status)?.Count ?? 0;
 

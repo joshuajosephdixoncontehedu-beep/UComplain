@@ -79,3 +79,8 @@ const statusLabels: Record<string, string> = {
 export function humanizeEnumValue(value: string): string {
   return statusLabels[value] ?? value;
 }
+
+/** "ReportStatusChanged" -> "Report Status Changed" — for audit log action names. */
+export function humanizePascalCase(value: string): string {
+  return value.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z])([A-Z][a-z])/g, "$1 $2");
+}

@@ -7,6 +7,7 @@ using CommunityIncidentReporting.Infrastructure;
 using DotNetEnv;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
@@ -137,6 +138,19 @@ try
             options.SwaggerEndpoint("/swagger/v1/swagger.json", "Community Incident Reporting System API v1");
             options.DocumentTitle = "CIRS Admin API";
         });
+
+        // dotnet ef database update (and migrations add) always go through
+        // DesignTimeDbContextFactory, not this app's DI container — so the
+        // UseSeeding/UseAsyncSeeding hooks configured in AddInfrastructure never run
+        // via the CLI. Calling Migrate() here, on the real DI-resolved context, applies
+        // any pending migrations and runs those seeding hooks. Migrate() is idempotent
+        // and the seeder checks for existing data first, so this is safe on every
+        // Development startup, not just the first.
+        using (var scope = app.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<CommunityIncidentReporting.Infrastructure.Persistence.AppDbContext>();
+            db.Database.Migrate();
+        }
     }
 
     app.UseHttpsRedirection();

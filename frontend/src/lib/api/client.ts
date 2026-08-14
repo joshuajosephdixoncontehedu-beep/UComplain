@@ -123,9 +123,9 @@ export function apiPatch<T>(path: string, body?: unknown, options?: ApiFetchOpti
   return apiFetch<T>(path, { ...options, method: "PATCH", body });
 }
 
-export function buildQueryString(params: Record<string, unknown>): string {
+export function buildQueryString<T extends object>(params: T): string {
   const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) {
+  for (const [key, value] of Object.entries(params as Record<string, unknown>)) {
     if (value === undefined || value === null || value === "") continue;
     query.set(key, String(value));
   }

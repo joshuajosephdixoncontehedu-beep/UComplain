@@ -6,8 +6,15 @@ public class IncidentReport
 {
     public Guid Id { get; set; }
 
-    /// <summary>Server-generated, human-readable reference, e.g. "CIRS-2026-000001".</summary>
-    public string CaseReference { get; set; } = string.Empty;
+    /// <summary>
+    /// Server-generated, human-readable reference, e.g. "CIRS-2026-000001" — left at
+    /// its CLR default (null) rather than "", because EF Core's ValueGeneratedOnAdd
+    /// only omits a column from the INSERT (deferring to the Postgres-side default) when
+    /// the property still holds the CLR type's true default value. An explicit ""
+    /// looks like an app-supplied value and defeats that detection, sending an empty
+    /// string to every row instead of letting nextval() generate a unique reference.
+    /// </summary>
+    public string CaseReference { get; set; } = null!;
 
     public Guid ReporterId { get; set; }
     public Reporter? Reporter { get; set; }
