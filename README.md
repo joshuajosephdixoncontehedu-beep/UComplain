@@ -191,6 +191,23 @@ Built in phases; see commit history for what's landed.
   needed) backs `/settings`. Business rules enforced at the service layer include
   duplicate-email rejection on administrator creation and blocking deactivation of
   the last active SuperAdmin. 40 backend tests passing.
+- **Phase 4**: frontend foundation. shadcn/ui (Base UI primitives) with a custom
+  public-safety palette (slate/off-white content area, deep navy sidebar, one muted
+  blue primary, reserved green/amber/red semantic colors) applied entirely through
+  CSS variables so every generated component picks it up automatically. App shell
+  (navy sidebar with role-aware nav, top bar with search/notification placeholders
+  and a profile menu), a typed fetch-based API client (`lib/api/client.ts`) with
+  automatic 401 refresh-and-retry, and TanStack Query wired at the root. Auth is
+  **development-grade by design**: the access token lives in memory only and the
+  refresh token in local/session storage (see `lib/auth/tokenStore.ts` for the
+  full tradeoff notes) — the frontend still never talks to Supabase, only to this
+  API, but there's no server-side cookie for `proxy.ts` to inspect, so route
+  protection (`RouteGuard`) is a client-side check instead. Login page with
+  react-hook-form + zod validation, loading/error states, and a remember-me
+  control. All 9 authenticated routes render (placeholder content, built out in
+  Phases 5–7) behind role-aware navigation. Verified in a real headless-browser
+  run: unauthenticated redirect to `/login`, client-side validation, and the
+  server-error path all work with zero console errors.
 
 Subsequent phases add the full admin UI.
 
