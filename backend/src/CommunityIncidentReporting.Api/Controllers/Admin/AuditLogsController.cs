@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CommunityIncidentReporting.Api.Controllers.Admin;
 
+[Route("api/admin/audit-logs")]
 [Authorize(Policy = Policies.SuperAdminOnly)]
 public class AuditLogsController(IAuditLogQueryService auditLogQueryService) : AdminControllerBase
 {

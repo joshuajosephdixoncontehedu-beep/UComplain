@@ -20,6 +20,13 @@ public class CategoryService(AppDbContext db, IAuditLogger auditLogger) : ICateg
     public async Task<CategoryDto> CreateAsync(
         CreateCategoryRequest request, RequestContext context, CancellationToken cancellationToken)
     {
+        var normalizedName = request.Name.Trim().ToLowerInvariant();
+        var nameInUse = await db.IncidentCategories.AnyAsync(c => c.Name.ToLower() == normalizedName, cancellationToken);
+        if (nameInUse)
+        {
+            throw new BusinessRuleException($"A category named '{request.Name}' already exists.");
+        }
+
         var now = DateTimeOffset.UtcNow;
         var category = new IncidentCategory
         {
@@ -48,6 +55,14 @@ public class CategoryService(AppDbContext db, IAuditLogger auditLogger) : ICateg
     {
         var category = await db.IncidentCategories.FindAsync([id], cancellationToken)
             ?? throw new NotFoundException(nameof(IncidentCategory), id);
+
+        var normalizedName = request.Name.Trim().ToLowerInvariant();
+        var nameInUseByAnother = await db.IncidentCategories
+            .AnyAsync(c => c.Id != id && c.Name.ToLower() == normalizedName, cancellationToken);
+        if (nameInUseByAnother)
+        {
+            throw new BusinessRuleException($"A category named '{request.Name}' already exists.");
+        }
 
         var previous = ToDto(category);
 

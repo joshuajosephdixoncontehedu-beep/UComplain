@@ -284,8 +284,69 @@ Built in phases; see commit history for what's landed.
   sorting, note-adding, and a full verification decision (Pending → Needs
   Clarification, with the queue tab counts updating live) all confirmed with zero
   console errors.
+- **Phase 7**: the remaining six admin pages. `/users` and `/users/[id]` (reporter
+  list/detail, filtered by search/verification status/restriction, report and
+  verification history, a restrict/unrestrict action for Manager-or-above).
+  `/administrators` (SuperAdmin-only CRUD with role descriptions shown inline, and
+  a client-side guard that disables "Deactivate" on the last active SuperAdmin —
+  the backend enforces this too, but disabling the control avoids a round trip to
+  find out). `/categories` (add/edit/disable with default priority and SLA hours;
+  no delete, matching the backend's soft-disable-only design). `/analytics`
+  (custom date range via the same `DateRangeControl` from the dashboard, reusing
+  its chart components directly since `AnalyticsResponse` shares their exact data
+  shapes, plus an assignment-workload table and a response-time-by-category table,
+  and a CSV export). `/audit-logs` (SuperAdmin-only, filterable, read-only, with a
+  detail dialog showing the before/after JSON of any entry). `/settings`
+  (organisation/notification/verification-rule/privacy fields in one form, plus a
+  read-only WhatsApp-integration-enabled badge next to an editable placeholder
+  note — the enabled flag itself isn't part of `UpdateSettingsRequest`, since
+  actually enabling it means shipping the chatbot, not flipping a setting). Every
+  SuperAdmin-only page now shows an explicit "access restricted" state for other
+  roles on direct navigation, matching the pattern already used for
+  `/verification` — defense in depth alongside the sidebar already hiding the
+  link. CSV export required its own download path rather than a plain link: the
+  endpoint needs the JWT bearer token, which only lives in memory (see
+  `tokenStore.ts`), so a browser-initiated `<a href>` navigation can't carry it —
+  `downloadAnalyticsCsv()` fetches with the header instead and saves the response
+  as a blob.
 
-Subsequent phases add the full admin UI.
+  Real-browser testing against real seeded Postgres data (the same discipline as
+  every phase since 5) found two more real bugs:
+  - `AuditLogsController` had no explicit route override, so it inherited the
+    default `[controller]` token and resolved to `/api/admin/AuditLogs` instead of
+    the documented `/api/admin/audit-logs` — the same class of bug already fixed
+    for `VerificationQueueController` in Phase 3, but missed here since nothing
+    had exercised this specific endpoint until the audit-logs page existed. Fixed
+    with the same explicit `[Route("api/admin/audit-logs")]` override.
+  - `CategoryService.CreateAsync`/`UpdateAsync` had no duplicate-name check, unlike
+    `AdministratorService`'s duplicate-email check — creating a category with a
+    name already in use fell all the way through to the database's unique
+    constraint and surfaced as a raw 500 with an EF/Npgsql stack trace in the
+    response body (a real information-disclosure smell, not just a UX rough edge).
+    Fixed by adding the same `AnyAsync` pre-check + `BusinessRuleException` pattern
+    already established for administrators.
+
+  Also fixed, from the same session, a controlled/uncontrolled warning on the
+  Settings page's notification `Switch`es: their `defaultValues` weren't set until
+  the settings query resolved and called `reset()`, so the switches rendered
+  uncontrolled (value `undefined`) on the first paint and then became controlled —
+  fixed by giving the form real boolean defaults from the start. Two
+  `watch()`-returned-from-`useForm()` React Compiler warnings in the administrator
+  dialogs were fixed by switching to `useWatch({ control, name })`, which the
+  compiler can memoize safely. Two zod-schema type-inference errors
+  (`z.coerce.number()` gives a schema whose input and output types differ, which
+  `useForm<T>`'s single-generic form doesn't accept) were fixed by typing those
+  forms with `useForm<Input, Context, Output>` using `z.input<>`/`z.output<>`
+  instead of `z.infer<>`.
+
+  Verified end-to-end in a real headless-browser session: every one of the six
+  pages loads and renders with real seeded data, a category was created through
+  its dialog, a reporter was viewed with real report/verification history, and an
+  audit log entry's detail dialog opened correctly — zero console errors in the
+  final run. `dotnet test` still 40/40 after the `CategoryService` change; `tsc
+  --noEmit`, `eslint`, and `next build` all clean.
+
+Phase 8 (testing, security/accessibility review, and documentation) is next.
 
 ## Future WhatsApp integration
 
