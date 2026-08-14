@@ -51,7 +51,7 @@ export default function LoginPage() {
           <ShieldCheck className="size-6" aria-hidden="true" />
         </div>
         <CardTitle className="text-xl">Welcome back</CardTitle>
-        <CardDescription>Sign in to the Community Incident Reporting System</CardDescription>
+        <CardDescription>Sign in to UComplain</CardDescription>
       </CardHeader>
       <CardContent className="mt-2">
         <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
@@ -68,7 +68,7 @@ export default function LoginPage() {
               id="email"
               type="email"
               autoComplete="username"
-              placeholder="you@cirs.gov.sl"
+              placeholder="you@ucomplain.com"
               aria-invalid={!!errors.email}
               aria-describedby={errors.email ? "email-error" : undefined}
               className="h-10"

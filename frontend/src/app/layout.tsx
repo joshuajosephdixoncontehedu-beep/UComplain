@@ -6,8 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "CIRS Admin Portal",
-  description: "Community Incident Reporting System — Admin Portal",
+  title: "UComplain Admin Portal",
+  description: "UComplain — community incident reporting admin portal",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

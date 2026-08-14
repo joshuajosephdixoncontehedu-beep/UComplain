@@ -1,7 +1,7 @@
-# Community Incident Reporting System — Admin Portal
+# UComplain — Admin Portal
 
-A web-based administration portal for a WhatsApp-enabled community incident reporting
-system. Community members will eventually report incidents through a WhatsApp chatbot
+A web-based administration portal for UComplain, a WhatsApp-enabled community incident
+reporting platform. Community members will eventually report incidents through a WhatsApp chatbot
 (not built yet — see [`docs/whatsapp-integration-plan.md`](docs/whatsapp-integration-plan.md)).
 Every report must pass verification before it enters the active operational queue.
 Administrators use this portal to review verified cases, manage reports, users,

@@ -16,8 +16,8 @@ public class AuthServiceTests
     private static readonly JwtOptions TestJwtOptions = new()
     {
         Secret = "unit-test-signing-secret-at-least-32-characters-long",
-        Issuer = "CommunityIncidentReportingSystem.Tests",
-        Audience = "CommunityIncidentReportingSystem.Tests.AdminPortal",
+        Issuer = "UComplain.Tests",
+        Audience = "UComplain.Tests.AdminPortal",
         AccessTokenMinutes = 15,
         RefreshTokenDays = 7
     };

@@ -46,7 +46,7 @@ export default function DashboardPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={`Welcome, ${admin?.fullName ?? ""}`}
-        description="Operations overview for the Community Incident Reporting System."
+        description="Operations overview for UComplain."
         actions={<DateRangeControl value={range} onChange={setRange} />}
       />
 

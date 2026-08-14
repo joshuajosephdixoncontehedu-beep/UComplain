@@ -50,8 +50,8 @@ public class SettingsService(AppDbContext db, IAuditLogger auditLogger) : ISetti
         settings = new SystemSettings
         {
             Id = Guid.NewGuid(),
-            OrganizationName = "Community Incident Reporting System",
-            OrganizationContactEmail = "operations@cirs.gov.sl",
+            OrganizationName = "UComplain",
+            OrganizationContactEmail = "operations@ucomplain.com",
             NotifyOnNewVerifiedReport = true,
             NotifyOnCriticalPriority = true,
             DefaultVerificationSlaHours = 24,

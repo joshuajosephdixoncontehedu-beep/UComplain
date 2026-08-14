@@ -30,7 +30,7 @@ export function SidebarNav({ role, onNavigate, collapsed = false }: SidebarNavPr
             collapsed ? "max-w-0 opacity-0" : "max-w-40 opacity-100",
           )}
         >
-          <span className="text-sm font-semibold text-white">CIRS</span>
+          <span className="text-sm font-semibold text-white">UComplain</span>
           <span className="text-[11px] text-sidebar-foreground/70">Admin Portal</span>
         </div>
       </div>

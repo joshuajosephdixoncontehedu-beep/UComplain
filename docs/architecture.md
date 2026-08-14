@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Community Incident Reporting System Admin Portal is a two-tier web application:
+The UComplain Admin Portal is a two-tier web application:
 
 1. **Frontend** — a Next.js (App Router) single-purpose admin dashboard.
 2. **Backend** — an ASP.NET Core Web API on .NET 9, layered as Domain / Application /

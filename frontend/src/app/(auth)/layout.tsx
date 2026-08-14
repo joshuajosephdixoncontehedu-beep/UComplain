@@ -9,14 +9,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <ShieldCheck className="size-5" aria-hidden="true" />
           </div>
           <div className="flex flex-col leading-none">
-            <span className="text-sm font-semibold text-white">CIRS</span>
+            <span className="text-sm font-semibold text-white">UComplain</span>
             <span className="text-[11px] text-sidebar-foreground/70">Admin Portal</span>
           </div>
         </div>
 
         <div className="flex flex-col gap-3">
           <h1 className="text-2xl leading-snug font-semibold text-white">
-            Community Incident Reporting System
+            UComplain
           </h1>
           <p className="text-sm leading-relaxed text-sidebar-foreground/80">
             Every report is verified by a human before it reaches the operational queue.
@@ -25,7 +25,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <p className="text-xs text-sidebar-foreground/50">
-          Community Incident Reporting System — Admin Portal
+          UComplain — Admin Portal
         </p>
       </div>
 

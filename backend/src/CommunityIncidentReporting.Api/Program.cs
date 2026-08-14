@@ -57,9 +57,9 @@ try
     {
         options.SwaggerDoc("v1", new OpenApiInfo
         {
-            Title = "Community Incident Reporting System — Admin API",
+            Title = "UComplain — Admin API",
             Version = "v1",
-            Description = "Admin portal API for the WhatsApp-enabled Community Incident Reporting System. " +
+            Description = "Admin portal API for UComplain, a WhatsApp-enabled community incident reporting platform. " +
                            "Verified incident reports, verification queues, users, administrators, categories, analytics and audit trails."
         });
 
@@ -135,8 +135,8 @@ try
         app.UseSwagger();
         app.UseSwaggerUI(options =>
         {
-            options.SwaggerEndpoint("/swagger/v1/swagger.json", "Community Incident Reporting System API v1");
-            options.DocumentTitle = "CIRS Admin API";
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "UComplain API v1");
+            options.DocumentTitle = "UComplain Admin API";
         });
 
         // dotnet ef database update (and migrations add) always go through
