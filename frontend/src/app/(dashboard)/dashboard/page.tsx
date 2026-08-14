@@ -2,7 +2,17 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AlertTriangle } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  CalendarClock,
+  CheckCircle2,
+  Clock,
+  FileText,
+  ShieldCheck,
+  Timer,
+  XCircle,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { DateRangeControl } from "@/components/dashboard/DateRangeControl";
 import { MetricCard } from "@/components/dashboard/MetricCard";
@@ -60,6 +70,8 @@ export default function DashboardPage() {
               value={data.current.totalReportsReceived}
               previousValue={data.previous.totalReportsReceived}
               href="/reports"
+              icon={FileText}
+              accent="var(--chart-1)"
             />
             <MetricCard
               label="Awaiting verification"
@@ -67,6 +79,8 @@ export default function DashboardPage() {
               previousValue={data.previous.awaitingVerification}
               upIsGood={false}
               href="/verification"
+              icon={Clock}
+              accent="var(--chart-2)"
             />
             <MetricCard
               label="Verified, awaiting review"
@@ -74,33 +88,45 @@ export default function DashboardPage() {
               previousValue={data.previous.verifiedAwaitingReview}
               upIsGood={false}
               href="/reports?caseStatus=UnderReview"
+              icon={ShieldCheck}
+              accent="var(--chart-3)"
             />
             <MetricCard
               label="In progress"
               value={data.current.inProgress}
               previousValue={data.previous.inProgress}
+              icon={Activity}
+              accent="var(--chart-4)"
             />
             <MetricCard
               label="Resolved"
               value={data.current.resolved}
               previousValue={data.previous.resolved}
               href="/reports?caseStatus=Resolved"
+              icon={CheckCircle2}
+              accent="var(--chart-6)"
             />
             <MetricCard
               label="Rejected / duplicate / flagged"
               value={data.current.rejectedDuplicateOrFlagged}
               previousValue={data.previous.rejectedDuplicateOrFlagged}
               upIsGood={false}
+              icon={XCircle}
+              accent="var(--chart-8)"
             />
             <MetricCard
               label="Avg. verification time"
               value={data.current.averageVerificationTimeHours ?? 0}
               formatValue={() => formatHours(data.current.averageVerificationTimeHours)}
+              icon={Timer}
+              accent="var(--chart-7)"
             />
             <MetricCard
               label="Avg. resolution time"
               value={data.current.averageResolutionTimeHours ?? 0}
               formatValue={() => formatHours(data.current.averageResolutionTimeHours)}
+              icon={CalendarClock}
+              accent="var(--chart-5)"
             />
           </div>
 

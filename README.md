@@ -96,15 +96,23 @@ layer.
 
 ## Running the backend
 
+Copy [`backend/.env.example`](backend/.env.example) to
+`backend/src/CommunityIncidentReporting.Api/.env` and fill in real local values once —
+it's git-ignored and loaded automatically in Development (see `Program.cs`), so every
+run after that is just:
+
 ```powershell
-cd backend
-dotnet restore
-dotnet build CommunityIncidentReporting.sln
-dotnet run --project src/CommunityIncidentReporting.Api
+cd backend/src/CommunityIncidentReporting.Api
+dotnet run
 ```
 
-The API listens on `http://localhost:5058` (see `launchSettings.json`). Swagger UI is
-available at `http://localhost:5058/swagger` in Development.
+No exported environment variables needed for local dev. The API listens on
+`http://localhost:5058` (`launchSettings.json` sets `ASPNETCORE_ENVIRONMENT=Development`
+for you); Swagger UI is at `http://localhost:5058/swagger`.
+
+If you'd rather not create a `.env` file, the equivalent one-off is setting the same
+keys as PowerShell environment variables before `dotnet run` — see
+`backend/.env.example` for the full list.
 
 Database migrations:
 

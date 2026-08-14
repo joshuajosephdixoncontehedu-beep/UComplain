@@ -45,16 +45,16 @@ export default function LoginPage() {
   };
 
   return (
-    <Card className="w-full max-w-sm border-slate-200 shadow-sm">
-      <CardHeader className="items-center gap-2 text-center">
-        <div className="flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+    <Card className="w-full max-w-sm rounded-xl border-border py-8 shadow-lg">
+      <CardHeader className="items-center gap-2.5 text-center">
+        <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground lg:hidden">
           <ShieldCheck className="size-6" aria-hidden="true" />
         </div>
-        <CardTitle className="text-xl">Community Incident Reporting System</CardTitle>
-        <CardDescription>Sign in to the administrator portal</CardDescription>
+        <CardTitle className="text-xl">Welcome back</CardTitle>
+        <CardDescription>Sign in to the Community Incident Reporting System</CardDescription>
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-4">
+      <CardContent className="mt-2">
+        <form onSubmit={handleSubmit(onSubmit)} noValidate className="flex flex-col gap-5">
           {serverError && (
             <Alert variant="destructive">
               <AlertTitle>Sign-in failed</AlertTitle>
@@ -71,6 +71,7 @@ export default function LoginPage() {
               placeholder="you@cirs.gov.sl"
               aria-invalid={!!errors.email}
               aria-describedby={errors.email ? "email-error" : undefined}
+              className="h-10"
               {...register("email")}
             />
             {errors.email && (
@@ -88,6 +89,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               aria-invalid={!!errors.password}
               aria-describedby={errors.password ? "password-error" : undefined}
+              className="h-10"
               {...register("password")}
             />
             {errors.password && (
@@ -114,7 +116,7 @@ export default function LoginPage() {
             </Label>
           </div>
 
-          <Button type="submit" disabled={isSubmitting} className="mt-1 w-full">
+          <Button type="submit" disabled={isSubmitting} className="mt-1 h-10 w-full">
             {isSubmitting && <Loader2 className="size-4 animate-spin" aria-hidden="true" />}
             {isSubmitting ? "Signing in…" : "Sign in"}
           </Button>

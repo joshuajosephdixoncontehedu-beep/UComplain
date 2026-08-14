@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Minus, TrendingDown, TrendingUp } from "lucide-react";
+import { Minus, TrendingDown, TrendingUp, type LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatNumber, formatPercentChange } from "@/lib/utils/format";
 
@@ -11,9 +11,21 @@ interface MetricCardProps {
   upIsGood?: boolean;
   href?: string;
   formatValue?: (value: number) => string;
+  icon?: LucideIcon;
+  /** A `var(--chart-N)` value — identity color for this tile, not a status signal. */
+  accent?: string;
 }
 
-export function MetricCard({ label, value, previousValue, upIsGood = true, href, formatValue }: MetricCardProps) {
+export function MetricCard({
+  label,
+  value,
+  previousValue,
+  upIsGood = true,
+  href,
+  formatValue,
+  icon: Icon,
+  accent,
+}: MetricCardProps) {
   const trend = previousValue !== undefined ? formatPercentChange(value, previousValue) : null;
   const trendIsPositive =
     trend && ((trend.direction === "up" && upIsGood) || (trend.direction === "down" && !upIsGood));
@@ -21,8 +33,18 @@ export function MetricCard({ label, value, previousValue, upIsGood = true, href,
     trend && ((trend.direction === "up" && !upIsGood) || (trend.direction === "down" && upIsGood));
 
   const content = (
-    <div className="flex flex-col gap-1 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40">
-      <span className="text-sm text-muted-foreground">{label}</span>
+    <div className="flex flex-col gap-2 rounded-lg border border-border bg-card p-4 transition-colors hover:border-primary/40">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        {Icon && accent && (
+          <span
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg"
+            style={{ backgroundColor: `color-mix(in srgb, ${accent} 14%, transparent)`, color: accent }}
+          >
+            <Icon className="size-4" aria-hidden="true" />
+          </span>
+        )}
+      </div>
       <span className="text-2xl font-semibold tracking-tight text-foreground">
         {formatValue ? formatValue(value) : formatNumber(value)}
       </span>

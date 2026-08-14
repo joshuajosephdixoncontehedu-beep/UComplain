@@ -26,6 +26,7 @@ coverage*.xml
 .env.local
 **/appsettings.*.local.json
 **/secrets.json
+supabase-bootstrap.sql
 
 # EF Core
 *.db
