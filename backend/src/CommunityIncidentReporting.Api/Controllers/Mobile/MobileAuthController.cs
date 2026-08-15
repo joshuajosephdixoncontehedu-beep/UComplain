@@ -85,6 +85,16 @@ public class MobileAuthController(IReporterAuthService reporterAuthService) : Co
         return Ok(profile);
     }
 
+    [HttpPost("consent")]
+    [Authorize(Policy = Policies.RequireReporter)]
+    public async Task<ActionResult<IReadOnlyList<ConsentDto>>> RecordConsent(
+        [FromBody] RecordConsentRequest request, CancellationToken cancellationToken)
+    {
+        var reporterId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var response = await reporterAuthService.RecordConsentAsync(reporterId, request, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPost("forgot-password")]
     [AllowAnonymous]
     [EnableRateLimiting("otp")]

@@ -25,6 +25,6 @@ public class AppDbContextModelTests
         var act = () => context.Model.GetEntityTypes().ToList();
 
         act.Should().NotThrow();
-        context.Model.GetEntityTypes().Should().HaveCount(14);
+        context.Model.GetEntityTypes().Should().HaveCount(25);
     }
 }

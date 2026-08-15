@@ -13,4 +13,5 @@ public record ReporterProfileDto(
     bool IsActive,
     bool IsRestricted,
     DateTimeOffset? LastLoginAt,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    string? LanguagePreference);

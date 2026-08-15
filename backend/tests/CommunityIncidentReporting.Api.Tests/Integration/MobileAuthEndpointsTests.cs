@@ -1,6 +1,8 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using CommunityIncidentReporting.Application.Features.Auth.Dtos;
 using CommunityIncidentReporting.Application.Features.MobileAuth.Dtos;
 using CommunityIncidentReporting.Domain.Entities;
@@ -13,6 +15,12 @@ namespace CommunityIncidentReporting.Api.Tests.Integration;
 // Deliberately not IClassFixture-shared — see AuthEndpointsTests for why.
 public class MobileAuthEndpointsTests : IAsyncLifetime
 {
+    // Matches the server's AddJsonOptions(JsonStringEnumConverter) in Program.cs — see ReportsAndVerificationTests.
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
+
     private readonly CustomWebApplicationFactory _factory = new();
     private HttpClient _client = null!;
     private const string Password = "Correct-Horse-1";
@@ -193,6 +201,77 @@ public class MobileAuthEndpointsTests : IAsyncLifetime
 
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", adminTokens!.AccessToken);
         var response = await _client.GetAsync("/api/mobile/auth/me");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    public async Task Login_WithRememberMeTrue_IssuesALongLivedRefreshToken()
+    {
+        await RegisterAndVerifyAsync();
+
+        var login = await _client.PostAsJsonAsync(
+            "/api/mobile/auth/login", new ReporterLoginRequest(Email, Password, RememberMe: true));
+        var tokens = await login.Content.ReadFromJsonAsync<ReporterAuthTokenResponse>();
+
+        (tokens!.RefreshTokenExpiresAt - DateTimeOffset.UtcNow).Should().BeGreaterThan(TimeSpan.FromDays(29));
+    }
+
+    [Fact]
+    public async Task Login_WithRememberMeFalse_IssuesAShortLivedRefreshToken()
+    {
+        await RegisterAndVerifyAsync();
+
+        var login = await _client.PostAsJsonAsync(
+            "/api/mobile/auth/login", new ReporterLoginRequest(Email, Password, RememberMe: false));
+        var tokens = await login.Content.ReadFromJsonAsync<ReporterAuthTokenResponse>();
+
+        // appsettings.Testing.json sets ReporterShortSessionHours to 1.
+        (tokens!.RefreshTokenExpiresAt - DateTimeOffset.UtcNow).Should().BeLessThan(TimeSpan.FromHours(2));
+    }
+
+    [Fact]
+    public async Task Refresh_PreservesTheOriginalRememberMeCategoryAcrossRotation()
+    {
+        await RegisterAndVerifyAsync();
+        var login = await _client.PostAsJsonAsync(
+            "/api/mobile/auth/login", new ReporterLoginRequest(Email, Password, RememberMe: false));
+        var tokens = await login.Content.ReadFromJsonAsync<ReporterAuthTokenResponse>();
+
+        var refreshed = await _client.PostAsJsonAsync(
+            "/api/mobile/auth/refresh", new ReporterRefreshTokenRequest(tokens!.RefreshToken));
+        var refreshedTokens = await refreshed.Content.ReadFromJsonAsync<ReporterAuthTokenResponse>();
+
+        (refreshedTokens!.RefreshTokenExpiresAt - DateTimeOffset.UtcNow).Should().BeLessThan(TimeSpan.FromHours(2),
+            "a short session must not silently become long-lived just by refreshing");
+    }
+
+    [Fact]
+    public async Task RecordConsent_WithAValidReporterToken_PersistsEachGrant()
+    {
+        var accessToken = await RegisterAndVerifyAsync();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        var request = new RecordConsentRequest([
+            new ConsentGrantItem(ConsentType.Location, true, "v1"),
+            new ConsentGrantItem(ConsentType.Camera, true, "v1"),
+            new ConsentGrantItem(ConsentType.Notifications, false, "v1"),
+            new ConsentGrantItem(ConsentType.DataProcessing, true, "v1")
+        ]);
+
+        var response = await _client.PostAsJsonAsync("/api/mobile/auth/consent", request);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var recorded = await response.Content.ReadFromJsonAsync<List<ConsentDto>>(JsonOptions);
+        recorded.Should().HaveCount(4);
+        recorded!.Single(c => c.ConsentType == ConsentType.Notifications).Granted.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RecordConsent_WithoutAToken_Returns401()
+    {
+        var response = await _client.PostAsJsonAsync("/api/mobile/auth/consent",
+            new RecordConsentRequest([new ConsentGrantItem(ConsentType.Location, true, "v1")]));
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }

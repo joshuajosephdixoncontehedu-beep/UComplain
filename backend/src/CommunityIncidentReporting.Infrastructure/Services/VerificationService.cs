@@ -8,12 +8,16 @@ using CommunityIncidentReporting.Application.Features.Verification.Dtos;
 using CommunityIncidentReporting.Domain.Entities;
 using CommunityIncidentReporting.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using CommunityIncidentReporting.Infrastructure.Persistence;
+using CommunityIncidentReporting.Infrastructure.Verification;
 
 namespace CommunityIncidentReporting.Infrastructure.Services;
 
-public class VerificationService(AppDbContext db, IAuditLogger auditLogger, IIncidentReportService reportService)
-    : IVerificationService
+public class VerificationService(
+    AppDbContext db, IAuditLogger auditLogger, IIncidentReportService reportService,
+    INotificationService notificationService, IReportVisibilityService visibilityService,
+    IOptions<ClarificationOptions> clarificationOptions) : IVerificationService
 {
     public async Task<VerificationQueueResponse> GetQueueAsync(CancellationToken cancellationToken)
     {
@@ -84,6 +88,44 @@ public class VerificationService(AppDbContext db, IAuditLogger auditLogger, IInc
             CreatedAt = now
         });
 
+        if (request.Action == VerificationDecisionAction.RequestClarification)
+        {
+            // request.Reason is required for this action — see
+            // VerificationDecisionRequestValidator — so it's safe to use directly as the
+            // reporter-facing clarification message, not just an internal note.
+            db.ClarificationRequests.Add(new ClarificationRequest
+            {
+                Id = Guid.NewGuid(),
+                IncidentReportId = id,
+                RequestedByAdminId = context.AdminUserId,
+                Message = request.Reason!,
+                RequestedAt = now,
+                DueAt = now.AddHours(clarificationOptions.Value.DeadlineHours)
+            });
+        }
+
+        var notification = request.Action switch
+        {
+            VerificationDecisionAction.Approve =>
+                ((NotificationType Type, string Title, string Body)?)(NotificationType.ReportVerified, "Report verified",
+                    $"Your report {report.CaseReference} has been verified and is now under review."),
+            VerificationDecisionAction.Reject =>
+                (NotificationType.ReportRejected, "Report rejected",
+                    $"Your report {report.CaseReference} was not accepted: {request.Reason}"),
+            VerificationDecisionAction.RequestClarification =>
+                (NotificationType.ClarificationRequested, "More information needed",
+                    $"We need more information about your report {report.CaseReference}: {request.Reason}"),
+            VerificationDecisionAction.MarkDuplicate =>
+                (NotificationType.ReportClosedDuplicate, "Report marked as a duplicate",
+                    $"Your report {report.CaseReference} was marked as a duplicate of an existing report."),
+            // Escalate (FlaggedAbuse) is an internal review flag, not a reporter-facing event.
+            _ => null
+        };
+        if (notification is { } n)
+        {
+            await notificationService.NotifyAsync(report.ReporterId, n.Type, n.Title, n.Body, report.Id, cancellationToken);
+        }
+
         report.VerificationStatus = newVerificationStatus;
 
         if (report.CaseStatus != newCaseStatus)
@@ -102,6 +144,8 @@ public class VerificationService(AppDbContext db, IAuditLogger auditLogger, IInc
         }
 
         report.UpdatedAt = now;
+
+        await visibilityService.RecomputeAsync(report, cancellationToken);
 
         await auditLogger.LogAsync(
             context.AdminUserId, "VerificationDecisionRecorded", nameof(IncidentReport), report.Id.ToString(),

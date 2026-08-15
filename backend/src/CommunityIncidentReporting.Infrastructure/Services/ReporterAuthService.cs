@@ -61,6 +61,7 @@ public class ReporterAuthService(
         reporter.FullName = request.FullName.Trim();
         reporter.Email = request.Email.Trim();
         reporter.NormalizedEmail = normalizedEmail;
+        reporter.MaskedContactReference = MaskEmail(reporter.Email);
         reporter.PhoneNumber = request.PhoneNumber.Trim();
         reporter.PasswordHash = passwordHasher.Hash(request.Password);
         reporter.IsActive = false;
@@ -103,7 +104,7 @@ public class ReporterAuthService(
         reporter.ConsentAt ??= now;
         reporter.UpdatedAt = now;
 
-        var response = await IssueTokenPairAsync(reporter, cancellationToken);
+        var response = await IssueTokenPairAsync(reporter, rememberMe: true, cancellationToken);
 
         await auditLogger.LogAsync(
             adminUserId: null, "ReporterEmailVerified", nameof(Reporter), reporter.Id.ToString(),
@@ -166,7 +167,7 @@ public class ReporterAuthService(
         reporter.LastLoginAt = DateTimeOffset.UtcNow;
         reporter.UpdatedAt = DateTimeOffset.UtcNow;
 
-        var response = await IssueTokenPairAsync(reporter, cancellationToken);
+        var response = await IssueTokenPairAsync(reporter, request.RememberMe, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
         return response;
     }
@@ -185,7 +186,8 @@ public class ReporterAuthService(
             throw new InvalidCredentialsException(InvalidRefreshTokenMessage);
         }
 
-        var response = await IssueTokenPairAsync(existingToken.Reporter, cancellationToken, revoking: existingToken);
+        var response = await IssueTokenPairAsync(
+            existingToken.Reporter, existingToken.IsRemembered, cancellationToken, revoking: existingToken);
         await db.SaveChangesAsync(cancellationToken);
         return response;
     }
@@ -279,14 +281,48 @@ public class ReporterAuthService(
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<ConsentDto>> RecordConsentAsync(
+        Guid reporterId, RecordConsentRequest request, CancellationToken cancellationToken)
+    {
+        var reporterExists = await db.Reporters.AnyAsync(r => r.Id == reporterId, cancellationToken);
+        if (!reporterExists)
+        {
+            throw new NotFoundException(nameof(Reporter), reporterId);
+        }
+
+        var now = DateTimeOffset.UtcNow;
+        var newRows = request.Consents.Select(item => new ReporterConsent
+        {
+            Id = Guid.NewGuid(),
+            ReporterId = reporterId,
+            ConsentType = item.ConsentType,
+            Granted = item.Granted,
+            PolicyVersion = item.PolicyVersion,
+            GrantedAt = now
+        }).ToList();
+
+        db.ReporterConsents.AddRange(newRows);
+
+        await auditLogger.LogAsync(
+            adminUserId: null, "ReporterConsentRecorded", nameof(Reporter), reporterId.ToString(),
+            previousValue: null,
+            newValue: newRows.Select(r => new { r.ConsentType, r.Granted, r.PolicyVersion }),
+            ipAddress: null, userAgent: null, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return newRows.Select(r => new ConsentDto(r.Id, r.ConsentType, r.Granted, r.PolicyVersion, r.GrantedAt)).ToList();
+    }
+
     private async Task<ReporterAuthTokenResponse> IssueTokenPairAsync(
-        Reporter reporter, CancellationToken cancellationToken, ReporterRefreshToken? revoking = null)
+        Reporter reporter, bool rememberMe, CancellationToken cancellationToken, ReporterRefreshToken? revoking = null)
     {
         var (accessToken, accessExpiresAt) = jwtTokenGenerator.GenerateAccessToken(reporter);
 
         var rawRefreshToken = RefreshTokenGenerator.GenerateRawToken();
         var refreshTokenHash = RefreshTokenGenerator.Hash(rawRefreshToken);
-        var refreshExpiresAt = DateTimeOffset.UtcNow.AddDays(jwtOptions.Value.ReporterRefreshTokenDays);
+        var refreshExpiresAt = rememberMe
+            ? DateTimeOffset.UtcNow.AddDays(jwtOptions.Value.ReporterRefreshTokenDays)
+            : DateTimeOffset.UtcNow.AddHours(jwtOptions.Value.ReporterShortSessionHours);
 
         var newToken = new ReporterRefreshToken
         {
@@ -294,6 +330,7 @@ public class ReporterAuthService(
             ReporterId = reporter.Id,
             TokenHash = refreshTokenHash,
             ExpiresAt = refreshExpiresAt,
+            IsRemembered = rememberMe,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
@@ -323,6 +360,23 @@ public class ReporterAuthService(
         }
     }
 
+    /// <summary>
+    /// Best-effort mask (e.g. "a•••••@example.com") shown to admins as
+    /// IncidentReportDetailDto.ReporterMaskedContact — mirrors
+    /// WhatsAppWebhookService.MaskPhoneNumber's role for WhatsApp reporters. Mobile
+    /// reporters previously left this field empty (never set at registration).
+    /// </summary>
+    private static string MaskEmail(string rawEmail)
+    {
+        var atIndex = rawEmail.IndexOf('@');
+        if (atIndex <= 0)
+        {
+            return "•••••";
+        }
+
+        return $"{rawEmail[..1]}•••••{rawEmail[atIndex..]}";
+    }
+
     private static ReporterProfileDto ToProfileDto(Reporter reporter) => new(
         reporter.Id,
         reporter.FullName ?? string.Empty,
@@ -332,5 +386,6 @@ public class ReporterAuthService(
         reporter.IsActive,
         reporter.IsRestricted,
         reporter.LastLoginAt,
-        reporter.CreatedAt);
+        reporter.CreatedAt,
+        reporter.LanguagePreference);
 }

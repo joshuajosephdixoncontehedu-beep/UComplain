@@ -20,6 +20,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<EmailOtpVerification> EmailOtpVerifications => Set<EmailOtpVerification>();
     public DbSet<ReporterRefreshToken> ReporterRefreshTokens => Set<ReporterRefreshToken>();
     public DbSet<IncidentMediaAttachment> IncidentMediaAttachments => Set<IncidentMediaAttachment>();
+    public DbSet<ReporterPrivacySetting> ReporterPrivacySettings => Set<ReporterPrivacySetting>();
+    public DbSet<ReporterConsent> ReporterConsents => Set<ReporterConsent>();
+    public DbSet<ReportDraft> ReportDrafts => Set<ReportDraft>();
+    public DbSet<ReportDraftAttachment> ReportDraftAttachments => Set<ReportDraftAttachment>();
+    public DbSet<ReportInformationAddition> ReportInformationAdditions => Set<ReportInformationAddition>();
+    public DbSet<ClarificationRequest> ClarificationRequests => Set<ClarificationRequest>();
+    public DbSet<ClarificationResponse> ClarificationResponses => Set<ClarificationResponse>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<DeviceToken> DeviceTokens => Set<DeviceToken>();
+    public DbSet<DataExportRequest> DataExportRequests => Set<DataExportRequest>();
+    public DbSet<AccountDeletionRequest> AccountDeletionRequests => Set<AccountDeletionRequest>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -36,6 +47,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         configurationBuilder.Properties<VerificationDecisionResult>().HaveConversion<string>().HaveMaxLength(32);
         configurationBuilder.Properties<EmailOtpPurpose>().HaveConversion<string>().HaveMaxLength(32);
         configurationBuilder.Properties<MediaType>().HaveConversion<string>().HaveMaxLength(16);
+        configurationBuilder.Properties<ConsentType>().HaveConversion<string>().HaveMaxLength(32);
+        configurationBuilder.Properties<NotificationType>().HaveConversion<string>().HaveMaxLength(32);
+        configurationBuilder.Properties<DevicePlatform>().HaveConversion<string>().HaveMaxLength(16);
+        configurationBuilder.Properties<DataExportStatus>().HaveConversion<string>().HaveMaxLength(16);
+        configurationBuilder.Properties<AccountDeletionStatus>().HaveConversion<string>().HaveMaxLength(16);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

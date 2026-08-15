@@ -7,4 +7,7 @@ public record UpdateCategoryRequest(
     string Description,
     IncidentPriority DefaultPriority,
     int SlaHours,
-    int DisplayOrder);
+    int DisplayOrder,
+    string? Slug = null,
+    string? IconKey = null,
+    string? ColourToken = null);

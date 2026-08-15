@@ -7,5 +7,8 @@ public enum VerificationDecisionResult
     Rejected = 1,
     ClarificationRequested = 2,
     MarkedDuplicate = 3,
-    Escalated = 4
+    Escalated = 4,
+
+    /// <summary>System-raised, not a human decision — see ClarificationAutoCloseService.</summary>
+    AutoClosed = 5
 }

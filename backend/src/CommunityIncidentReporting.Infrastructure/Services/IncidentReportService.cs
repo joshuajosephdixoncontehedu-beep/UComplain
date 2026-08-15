@@ -12,7 +12,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CommunityIncidentReporting.Infrastructure.Services;
 
-public class IncidentReportService(AppDbContext db, IAuditLogger auditLogger) : IIncidentReportService
+public class IncidentReportService(
+    AppDbContext db, IAuditLogger auditLogger, INotificationService notificationService,
+    IReportVisibilityService visibilityService) : IIncidentReportService
 {
     // Manual (POST .../status) transitions only. Verification decisions move a report
     // into/out of VerificationPending/Rejected/Duplicate separately (see
@@ -200,10 +202,17 @@ public class IncidentReportService(AppDbContext db, IAuditLogger auditLogger) : 
             report.CaseStatus = CaseStatus.Assigned;
         }
 
+        await visibilityService.RecomputeAsync(report, cancellationToken);
+
         await auditLogger.LogAsync(
             context.AdminUserId, "ReportAssigned", nameof(IncidentReport), report.Id.ToString(),
             new { AssignedAdminId = previousAdminId }, new { AssignedAdminId = admin.Id },
             context.IpAddress, context.UserAgent, cancellationToken);
+
+        await notificationService.NotifyAsync(
+            report.ReporterId, NotificationType.AssignmentMade, "Officer assigned",
+            $"An officer has been assigned to your report {report.CaseReference}.", report.Id, cancellationToken);
+
         await db.SaveChangesAsync(cancellationToken);
 
         return await BuildDetailDtoAsync(report, cancellationToken);
@@ -272,10 +281,27 @@ public class IncidentReportService(AppDbContext db, IAuditLogger auditLogger) : 
             report.ClosedAt = null;
         }
 
+        await visibilityService.RecomputeAsync(report, cancellationToken);
+
         await auditLogger.LogAsync(
             context.AdminUserId, "ReportStatusChanged", nameof(IncidentReport), report.Id.ToString(),
             new { Status = previousStatus.ToString() }, new { Status = request.NewStatus.ToString() },
             context.IpAddress, context.UserAgent, cancellationToken);
+
+        var notification = request.NewStatus switch
+        {
+            CaseStatus.InProgress =>
+                ((NotificationType Type, string Title, string Body)?)(NotificationType.WorkStarted, "Work started",
+                    $"Work has started on your report {report.CaseReference}."),
+            CaseStatus.Resolved =>
+                (NotificationType.ReportResolved, "Report resolved", $"Your report {report.CaseReference} has been resolved."),
+            _ => null
+        };
+        if (notification is { } n)
+        {
+            await notificationService.NotifyAsync(report.ReporterId, n.Type, n.Title, n.Body, report.Id, cancellationToken);
+        }
+
         await db.SaveChangesAsync(cancellationToken);
 
         return await BuildDetailDtoAsync(report, cancellationToken);

@@ -34,4 +34,8 @@ public interface IReporterAuthService
 
     /// <summary>Re-validates and consumes the code, sets the new password, and revokes all existing reporter sessions.</summary>
     Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Records one or more consent grants (append-only — see ReporterConsent).</summary>
+    Task<IReadOnlyList<ConsentDto>> RecordConsentAsync(
+        Guid reporterId, RecordConsentRequest request, CancellationToken cancellationToken);
 }

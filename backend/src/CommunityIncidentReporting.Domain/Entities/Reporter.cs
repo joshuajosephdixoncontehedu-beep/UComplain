@@ -37,13 +37,29 @@ public class Reporter
     public string? RestrictionReason { get; set; }
     public DateTimeOffset? LastLoginAt { get; set; }
 
+    /// <summary>BCP-47-ish tag (e.g. "en", "kri") — display preference only, never used for validation logic.</summary>
+    public string? LanguagePreference { get; set; }
+    public DateTimeOffset? TermsAcceptedAt { get; set; }
+    public string? TermsAcceptedVersion { get; set; }
+
     public VerificationStatus VerificationStatus { get; set; }
     public DateTimeOffset? ConsentAt { get; set; }
     public bool IsRestricted { get; set; }
+
+    /// <summary>
+    /// Set once, by either an executed AccountDeletionRequest or the retention-purge
+    /// sweep (see ReporterAnonymizationService) — never client-settable, never cleared.
+    /// FullName/Email/NormalizedEmail/PhoneNumber/PasswordHash/WhatsAppNumberHash/
+    /// MaskedContactReference are scrubbed at that point; IncidentReport rows are kept
+    /// intact for audit/legal continuity.
+    /// </summary>
+    public DateTimeOffset? AnonymizedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 
     public ICollection<IncidentReport> IncidentReports { get; set; } = new List<IncidentReport>();
     public ICollection<VerificationEvent> VerificationEvents { get; set; } = new List<VerificationEvent>();
     public ICollection<ReporterRefreshToken> RefreshTokens { get; set; } = new List<ReporterRefreshToken>();
+    public ReporterPrivacySetting? PrivacySetting { get; set; }
 }

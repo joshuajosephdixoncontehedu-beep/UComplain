@@ -28,6 +28,7 @@ public class IncidentReport
     public string LocationDescription { get; set; } = string.Empty;
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
+    public string? Landmark { get; set; }
     public string? MediaReference { get; set; }
 
     public VerificationStatus VerificationStatus { get; set; } = VerificationStatus.Pending;
@@ -38,6 +39,30 @@ public class IncidentReport
     public AdminUser? AssignedAdmin { get; set; }
 
     public string? ResolutionSummary { get; set; }
+
+    public DateTimeOffset? WithdrawnAt { get; set; }
+    public string? WithdrawalReason { get; set; }
+
+    /// <summary>Self-reference for reports the verification queue has marked as a duplicate of another.</summary>
+    public Guid? DuplicateOfReportId { get; set; }
+    public IncidentReport? DuplicateOfReport { get; set; }
+
+    /// <summary>
+    /// Server-computed and persisted (never client-settable) — true only when this report
+    /// is safe to surface on the anonymous public map: Verified, not in a terminal/paused
+    /// state that shouldn't be shown, and the reporter's ShowOnPublicMap privacy setting
+    /// allows it. Recomputed wherever VerificationStatus, CaseStatus, or the reporter's
+    /// privacy setting changes — see ReportPublicVisibility (Phase 7).
+    /// </summary>
+    public bool IsPubliclyVisible { get; set; }
+
+    /// <summary>
+    /// Both null for the WhatsApp path and Wave 1's one-shot mobile POST /reports (which
+    /// collects no truth declaration). Set together at submit time for the Phase 3
+    /// draft-wizard flow.
+    /// </summary>
+    public DateTimeOffset? TruthDeclarationAcceptedAt { get; set; }
+    public DateTimeOffset? SubmittedAt { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }

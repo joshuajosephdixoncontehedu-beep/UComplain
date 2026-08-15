@@ -12,5 +12,12 @@ public class CreateCategoryRequestValidator : AbstractValidator<CreateCategoryRe
         RuleFor(x => x.DefaultPriority).IsInEnum();
         RuleFor(x => x.SlaHours).GreaterThan(0).LessThanOrEqualTo(24 * 30);
         RuleFor(x => x.DisplayOrder).GreaterThanOrEqualTo(0);
+
+        RuleFor(x => x.Slug)
+            .Matches("^[a-z0-9]+(-[a-z0-9]+)*$").WithMessage("Slug must be lowercase, alphanumeric, hyphen-separated.")
+            .MaximumLength(80)
+            .When(x => x.Slug is not null);
+        RuleFor(x => x.IconKey).MaximumLength(80).When(x => x.IconKey is not null);
+        RuleFor(x => x.ColourToken).MaximumLength(40).When(x => x.ColourToken is not null);
     }
 }

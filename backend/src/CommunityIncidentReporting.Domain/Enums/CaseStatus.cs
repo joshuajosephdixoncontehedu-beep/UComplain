@@ -9,5 +9,6 @@ public enum CaseStatus
     Resolved = 4,
     Closed = 5,
     Rejected = 6,
-    Duplicate = 7
+    Duplicate = 7,
+    Withdrawn = 8
 }

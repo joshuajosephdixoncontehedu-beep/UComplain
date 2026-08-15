@@ -17,6 +17,7 @@ public record MobileReportDetailDto(
     string LocationDescription,
     double? Latitude,
     double? Longitude,
+    string? Landmark,
     VerificationStatus VerificationStatus,
     CaseStatus CaseStatus,
     IncidentPriority Priority,
@@ -24,5 +25,7 @@ public record MobileReportDetailDto(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     DateTimeOffset? ClosedAt,
+    DateTimeOffset? WithdrawnAt,
+    string? WithdrawalReason,
     IReadOnlyList<MobileReportStatusHistoryDto> StatusHistory,
     IReadOnlyList<MediaAttachmentDto> Attachments);

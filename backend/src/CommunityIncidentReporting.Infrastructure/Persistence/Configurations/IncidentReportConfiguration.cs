@@ -26,11 +26,19 @@ public class IncidentReportConfiguration : IEntityTypeConfiguration<IncidentRepo
         builder.Property(x => x.LocationDescription).HasMaxLength(300).IsRequired();
         builder.Property(x => x.MediaReference).HasMaxLength(500);
         builder.Property(x => x.ResolutionSummary).HasMaxLength(4000);
+        builder.Property(x => x.WithdrawalReason).HasMaxLength(1000);
+        builder.Property(x => x.Landmark).HasMaxLength(300);
+
+        // Explicit default so the migration backfills existing rows to the same value
+        // the entity's C# property initializer already gives every new row — same
+        // reasoning as Reporter.IsActive (see ReporterConfiguration.cs).
+        builder.Property(x => x.IsPubliclyVisible).HasDefaultValue(false);
 
         builder.HasIndex(x => x.VerificationStatus);
         builder.HasIndex(x => x.CaseStatus);
         builder.HasIndex(x => x.Priority);
         builder.HasIndex(x => x.CreatedAt);
+        builder.HasIndex(x => x.IsPubliclyVisible);
 
         builder.HasOne(x => x.Reporter)
             .WithMany(r => r.IncidentReports)
@@ -46,6 +54,11 @@ public class IncidentReportConfiguration : IEntityTypeConfiguration<IncidentRepo
             .WithMany(a => a.AssignedReports)
             .HasForeignKey(x => x.AssignedAdminId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        builder.HasOne(x => x.DuplicateOfReport)
+            .WithMany()
+            .HasForeignKey(x => x.DuplicateOfReportId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(x => x.VerificationEvents)
             .WithOne(v => v.IncidentReport)

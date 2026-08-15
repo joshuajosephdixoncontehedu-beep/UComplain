@@ -27,12 +27,20 @@ public class CategoryService(AppDbContext db, IAuditLogger auditLogger) : ICateg
             throw new BusinessRuleException($"A category named '{request.Name}' already exists.");
         }
 
+        if (request.Slug is { } slug && await db.IncidentCategories.AnyAsync(c => c.Slug == slug, cancellationToken))
+        {
+            throw new BusinessRuleException($"A category with slug '{slug}' already exists.");
+        }
+
         var now = DateTimeOffset.UtcNow;
         var category = new IncidentCategory
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
             Description = request.Description,
+            Slug = request.Slug,
+            IconKey = request.IconKey,
+            ColourToken = request.ColourToken,
             DefaultPriority = request.DefaultPriority,
             SlaHours = request.SlaHours,
             IsActive = true,
@@ -64,10 +72,19 @@ public class CategoryService(AppDbContext db, IAuditLogger auditLogger) : ICateg
             throw new BusinessRuleException($"A category named '{request.Name}' already exists.");
         }
 
+        if (request.Slug is { } slug
+            && await db.IncidentCategories.AnyAsync(c => c.Id != id && c.Slug == slug, cancellationToken))
+        {
+            throw new BusinessRuleException($"A category with slug '{slug}' already exists.");
+        }
+
         var previous = ToDto(category);
 
         category.Name = request.Name;
         category.Description = request.Description;
+        category.Slug = request.Slug;
+        category.IconKey = request.IconKey;
+        category.ColourToken = request.ColourToken;
         category.DefaultPriority = request.DefaultPriority;
         category.SlaHours = request.SlaHours;
         category.DisplayOrder = request.DisplayOrder;
@@ -99,5 +116,6 @@ public class CategoryService(AppDbContext db, IAuditLogger auditLogger) : ICateg
     }
 
     private static CategoryDto ToDto(IncidentCategory c) => new(
-        c.Id, c.Name, c.Description, c.DefaultPriority, c.SlaHours, c.IsActive, c.DisplayOrder, c.CreatedAt, c.UpdatedAt);
+        c.Id, c.Name, c.Description, c.DefaultPriority, c.SlaHours, c.IsActive, c.DisplayOrder, c.CreatedAt, c.UpdatedAt,
+        c.Slug, c.IconKey, c.ColourToken);
 }

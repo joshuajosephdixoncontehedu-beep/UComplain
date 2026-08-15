@@ -5,5 +5,6 @@ public enum VerificationMethod
 {
     AdminReview = 0,
     AutomatedDuplicateCheck = 1,
-    ReporterClarification = 2
+    ReporterClarification = 2,
+    AutomatedClarificationTimeout = 3
 }

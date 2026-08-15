@@ -4,20 +4,26 @@ using CommunityIncidentReporting.Application.Features.Auth;
 using CommunityIncidentReporting.Application.Features.Analytics;
 using CommunityIncidentReporting.Application.Features.AuditLogs;
 using CommunityIncidentReporting.Application.Features.Categories;
+using CommunityIncidentReporting.Application.Features.Clarifications;
 using CommunityIncidentReporting.Application.Features.Dashboard;
 using CommunityIncidentReporting.Application.Features.MobileAuth;
+using CommunityIncidentReporting.Application.Features.Notifications;
+using CommunityIncidentReporting.Application.Features.PublicMap;
 using CommunityIncidentReporting.Application.Features.Reporters;
+using CommunityIncidentReporting.Application.Features.ReporterAccount;
 using CommunityIncidentReporting.Application.Features.Reports;
 using CommunityIncidentReporting.Application.Features.Settings;
 using CommunityIncidentReporting.Application.Features.Verification;
 using CommunityIncidentReporting.Application.Features.Webhooks;
 using CommunityIncidentReporting.Application.Features.MobileReports;
+using CommunityIncidentReporting.Infrastructure.Compliance;
 using CommunityIncidentReporting.Infrastructure.Email;
 using CommunityIncidentReporting.Infrastructure.Persistence;
 using CommunityIncidentReporting.Infrastructure.Persistence.Seeding;
 using CommunityIncidentReporting.Infrastructure.Security;
 using CommunityIncidentReporting.Infrastructure.Services;
 using CommunityIncidentReporting.Infrastructure.Storage;
+using CommunityIncidentReporting.Infrastructure.Verification;
 using CommunityIncidentReporting.Infrastructure.WhatsApp;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -79,7 +85,16 @@ public static class DependencyInjection
         services.AddScoped<IAdministratorService, AdministratorService>();
         services.AddScoped<IReporterService, ReporterService>();
         services.AddScoped<IIncidentReportService, IncidentReportService>();
+        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<IMobileNotificationService, MobileNotificationService>();
+        services.AddScoped<IReportVisibilityService, ReportVisibilityService>();
+        services.AddScoped<IPublicMapService, PublicMapService>();
+
+        services.Configure<ClarificationOptions>(configuration.GetSection(ClarificationOptions.SectionName));
         services.AddScoped<IVerificationService, VerificationService>();
+        services.AddScoped<IClarificationService, ClarificationService>();
+        services.AddScoped<IClarificationAutoCloseService, ClarificationAutoCloseService>();
+        services.AddHostedService<ClarificationAutoCloseJob>();
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IAnalyticsService, AnalyticsService>();
         services.AddScoped<IAuditLogQueryService, AuditLogQueryService>();
@@ -157,6 +172,16 @@ public static class DependencyInjection
         services.Configure<MediaUploadOptions>(configuration.GetSection(MediaUploadOptions.SectionName));
         services.AddScoped<IMobileReportService, MobileReportService>();
         services.AddScoped<IMediaAttachmentService, MediaAttachmentService>();
+
+        services.Configure<ComplianceOptions>(configuration.GetSection(ComplianceOptions.SectionName));
+        services.AddScoped<IReporterAccountService, ReporterAccountService>();
+        services.AddScoped<IReporterAnonymizationService, ReporterAnonymizationService>();
+        services.AddScoped<IDataExportProcessorService, DataExportProcessorService>();
+        services.AddHostedService<DataExportJob>();
+        services.AddScoped<IAccountDeletionProcessorService, AccountDeletionProcessorService>();
+        services.AddHostedService<AccountDeletionJob>();
+        services.AddScoped<IReporterRetentionPurgeService, ReporterRetentionPurgeService>();
+        services.AddHostedService<ReporterRetentionPurgeJob>();
 
         return services;
     }

@@ -11,4 +11,8 @@ public record CategoryDto(
     bool IsActive,
     int DisplayOrder,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    // Mobile-app catalogue display fields — null until an admin sets them.
+    string? Slug,
+    string? IconKey,
+    string? ColourToken);

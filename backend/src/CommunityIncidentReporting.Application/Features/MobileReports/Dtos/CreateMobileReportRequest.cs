@@ -14,4 +14,5 @@ public record CreateMobileReportRequest(
     string LocationDescription,
     double? Latitude,
     double? Longitude,
-    IncidentPriority? InitialPrioritySignal);
+    IncidentPriority? InitialPrioritySignal,
+    string? Landmark = null);

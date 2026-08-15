@@ -18,6 +18,14 @@ public class ReporterRefreshToken
     public DateTimeOffset? RevokedAt { get; set; }
     public string? ReplacedByTokenHash { get; set; }
 
+    /// <summary>
+    /// Whether the login that produced this token had RememberMe=true (long-lived) or
+    /// false (short session). Carried forward on rotation (see
+    /// ReporterAuthService.RefreshAsync) so a short session never silently becomes a
+    /// long-lived one just by refreshing.
+    /// </summary>
+    public bool IsRemembered { get; set; } = true;
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public bool IsActive => RevokedAt is null && ExpiresAt > DateTimeOffset.UtcNow;

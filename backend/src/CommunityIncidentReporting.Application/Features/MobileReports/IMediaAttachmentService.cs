@@ -28,4 +28,10 @@ public interface IMediaAttachmentService
 
     /// <summary>No ownership check — any authenticated admin may request a signed URL for any report's attachment.</summary>
     Task<SignedUrlResponse> GetAdminAccessUrlAsync(Guid reportId, Guid attachmentId, CancellationToken cancellationToken);
+
+    /// <summary>Same validation as UploadAsync, against a not-yet-submitted ReportDraft instead of a submitted report.</summary>
+    Task<IReadOnlyList<MediaAttachmentDto>> UploadToDraftAsync(
+        Guid draftId, Guid reporterId, IReadOnlyList<MediaUploadFile> files, CancellationToken cancellationToken);
+
+    Task DeleteDraftAttachmentAsync(Guid draftId, Guid attachmentId, Guid reporterId, CancellationToken cancellationToken);
 }

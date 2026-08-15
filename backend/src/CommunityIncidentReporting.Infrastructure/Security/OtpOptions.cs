@@ -9,5 +9,5 @@ public class OtpOptions
 
     public int ExpiryMinutes { get; set; } = 10;
     public int MaxAttempts { get; set; } = 5;
-    public int ResendCooldownSeconds { get; set; } = 60;
+    public int ResendCooldownSeconds { get; set; } = 45;
 }

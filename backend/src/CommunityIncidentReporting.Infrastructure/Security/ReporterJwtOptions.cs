@@ -14,4 +14,7 @@ public class ReporterJwtOptions
     public string ReporterAudience { get; set; } = string.Empty;
     public int ReporterAccessTokenMinutes { get; set; } = 15;
     public int ReporterRefreshTokenDays { get; set; } = 30;
+
+    /// <summary>Refresh token lifetime when a login's RememberMe is false — a short session instead of the full 30 days.</summary>
+    public int ReporterShortSessionHours { get; set; } = 12;
 }
