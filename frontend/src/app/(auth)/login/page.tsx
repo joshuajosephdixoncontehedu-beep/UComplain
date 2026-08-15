@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ShieldCheck, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Logo } from "@/components/layout/Logo";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { ApiError } from "@/lib/api/client";
 import { loginSchema, type LoginFormValues } from "@/lib/validation/authSchemas";
@@ -47,9 +48,7 @@ export default function LoginPage() {
   return (
     <Card className="w-full max-w-sm rounded-xl border-border py-8 shadow-lg">
       <CardHeader className="items-center gap-2.5 text-center">
-        <div className="flex size-12 items-center justify-center rounded-xl bg-primary text-primary-foreground lg:hidden">
-          <ShieldCheck className="size-6" aria-hidden="true" />
-        </div>
+        <Logo size={48} className="rounded-xl justify-self-center lg:hidden" />
         <CardTitle className="text-xl">Welcome back</CardTitle>
         <CardDescription>Sign in to UComplain</CardDescription>
       </CardHeader>

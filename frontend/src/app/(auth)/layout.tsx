@@ -1,13 +1,11 @@
-import { ShieldCheck } from "lucide-react";
+import { Logo } from "@/components/layout/Logo";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen w-full">
       <div className="hidden w-[42%] max-w-md flex-col justify-between bg-sidebar px-10 py-12 lg:flex">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <ShieldCheck className="size-5" aria-hidden="true" />
-          </div>
+          <Logo size={36} className="rounded-lg" />
           <div className="flex flex-col leading-none">
             <span className="text-sm font-semibold text-white">UComplain</span>
             <span className="text-[11px] text-sidebar-foreground/70">Admin Portal</span>

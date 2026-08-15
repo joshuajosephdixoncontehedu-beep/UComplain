@@ -247,6 +247,12 @@ try
 
     app.UseHttpsRedirection();
 
+    // Serves wwwroot/images/ucomplain-logo.png (referenced by EmailTemplates via
+    // APP_BASE_URL) and any other static assets under wwwroot. Public, unauthenticated
+    // by design — email clients fetch it anonymously — so only non-sensitive brand
+    // assets belong under wwwroot.
+    app.UseStaticFiles();
+
     app.UseCors(CorsPolicyName);
 
     app.UseRateLimiter();

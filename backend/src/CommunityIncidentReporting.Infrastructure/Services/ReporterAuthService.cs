@@ -20,6 +20,7 @@ public class ReporterAuthService(
     IReporterJwtTokenGenerator jwtTokenGenerator,
     IOptions<ReporterJwtOptions> jwtOptions,
     IOptions<OtpOptions> otpOptions,
+    IOptions<ResendOptions> resendOptions,
     IEmailOtpService emailOtpService,
     IEmailService emailService,
     IAuditLogger auditLogger,
@@ -71,7 +72,8 @@ public class ReporterAuthService(
         var code = await emailOtpService.IssueAsync(
             normalizedEmail, EmailOtpPurpose.SignUpVerification, reporter.Id, requestIp, userAgent, cancellationToken);
 
-        var (subject, html, text) = EmailTemplates.EmailVerificationOtp(reporter.FullName, code, otpOptions.Value.ExpiryMinutes);
+        var (subject, html, text) = EmailTemplates.EmailVerificationOtp(
+            resendOptions.Value.AppBaseUrl, reporter.FullName, code, otpOptions.Value.ExpiryMinutes);
         await emailService.SendAsync(new EmailMessage(reporter.Email, subject, html, text), cancellationToken);
 
         await auditLogger.LogAsync(
@@ -136,8 +138,8 @@ public class ReporterAuthService(
 
         try
         {
-            var (subject, html, text) =
-                EmailTemplates.EmailVerificationOtp(reporter.FullName ?? "there", code, otpOptions.Value.ExpiryMinutes);
+            var (subject, html, text) = EmailTemplates.EmailVerificationOtp(
+                resendOptions.Value.AppBaseUrl, reporter.FullName ?? "there", code, otpOptions.Value.ExpiryMinutes);
             await emailService.SendAsync(new EmailMessage(reporter.Email!, subject, html, text), cancellationToken);
         }
         catch (EmailDeliveryException ex)
@@ -232,8 +234,8 @@ public class ReporterAuthService(
 
         try
         {
-            var (subject, html, text) =
-                EmailTemplates.PasswordResetOtp(reporter.FullName ?? "there", code, otpOptions.Value.ExpiryMinutes);
+            var (subject, html, text) = EmailTemplates.PasswordResetOtp(
+                resendOptions.Value.AppBaseUrl, reporter.FullName ?? "there", code, otpOptions.Value.ExpiryMinutes);
             await emailService.SendAsync(new EmailMessage(reporter.Email!, subject, html, text), cancellationToken);
         }
         catch (EmailDeliveryException ex)
@@ -312,7 +314,7 @@ public class ReporterAuthService(
     {
         try
         {
-            var (subject, html, text) = EmailTemplates.Welcome(reporter.FullName ?? "there");
+            var (subject, html, text) = EmailTemplates.Welcome(resendOptions.Value.AppBaseUrl, reporter.FullName ?? "there");
             await emailService.SendAsync(new EmailMessage(reporter.Email!, subject, html, text), cancellationToken);
         }
         catch (EmailDeliveryException ex)

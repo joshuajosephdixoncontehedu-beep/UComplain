@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems } from "./nav-items";
+import { Logo } from "./Logo";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { AdminRole } from "@/types/enums";
 
@@ -21,9 +21,7 @@ export function SidebarNav({ role, onNavigate, collapsed = false }: SidebarNavPr
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center gap-2 px-4">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
-          <ShieldCheck className="size-4.5" aria-hidden="true" />
-        </div>
+        <Logo size={32} />
         <div
           className={cn(
             "flex flex-col overflow-hidden leading-none whitespace-nowrap transition-all duration-300",
