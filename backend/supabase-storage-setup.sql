@@ -1,0 +1,51 @@
+-- ============================================================================
+-- CIRS — Supabase Storage bucket setup for incident media attachments
+--
+-- Unlike supabase-bootstrap.sql (gitignored — real provisioning for one
+-- specific project), this file contains no secrets and is committed to the
+-- repo as reusable setup documentation for any Supabase project this backend
+-- is deployed against.
+--
+-- Run this ONCE in the Supabase SQL Editor (Project -> SQL Editor -> New
+-- query) against the same project used for ConnectionStrings__DefaultConnection,
+-- after setting SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_STORAGE_BUCKET
+-- (see backend/.env.example). Safe to re-run — every statement is idempotent.
+--
+-- Equivalent UI steps, if you'd rather not run SQL: Project -> Storage ->
+-- New bucket -> name it "incident-media" (or whatever SUPABASE_STORAGE_BUCKET
+-- is set to) -> leave "Public bucket" OFF.
+-- ============================================================================
+
+-- Create the private bucket the backend uploads incident media into. "public
+-- = false" is what actually matters here — it's what makes every object
+-- request require either the service-role key or a signed URL; nothing is
+-- ever served from a plain https://.../object/public/... URL.
+insert into storage.buckets (id, name, public)
+values ('incident-media', 'incident-media', false)
+on conflict (id) do update set public = false;
+
+-- ----------------------------------------------------------------------------
+-- Row-level security on storage.objects — deliberately NOT adding any policy
+-- here, and NOT the point of this section.
+--
+-- storage.objects ships with RLS already enabled by Supabase on every
+-- project, with zero policies until you add one. That means anon/authenticated
+-- roles are denied by default for a bucket with no matching policy — which is
+-- exactly what "incident-media" should be, since 100% of legitimate access to
+-- it goes through this backend's own authorization checks (reporter
+-- ownership, admin role) before a signed URL is ever issued, never through a
+-- Supabase Auth session. Do NOT add a permissive policy scoped to "every
+-- bucket except incident-media" as a workaround — with RLS enabled and no
+-- other policies already present, a permissive policy like that grants
+-- anon/authenticated blanket access to every OTHER bucket in the project,
+-- which is a much bigger hole than the one it's trying to close. If this
+-- project has other buckets that legitimately need anon/authenticated
+-- access, give incident-media a policy that explicitly denies it
+-- (`using (bucket_id <> 'incident-media')` as a *restrictive* policy, not a
+-- permissive one — `create policy ... as restrictive for select ...`) rather
+-- than inferring allow/deny from other buckets' names.
+--
+-- The backend itself authenticates to Storage with the service-role key,
+-- which bypasses RLS entirely, so none of the above affects how this API
+-- reads or writes objects.
+-- ----------------------------------------------------------------------------

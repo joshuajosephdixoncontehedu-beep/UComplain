@@ -5,15 +5,19 @@ using CommunityIncidentReporting.Application.Features.Analytics;
 using CommunityIncidentReporting.Application.Features.AuditLogs;
 using CommunityIncidentReporting.Application.Features.Categories;
 using CommunityIncidentReporting.Application.Features.Dashboard;
+using CommunityIncidentReporting.Application.Features.MobileAuth;
 using CommunityIncidentReporting.Application.Features.Reporters;
 using CommunityIncidentReporting.Application.Features.Reports;
 using CommunityIncidentReporting.Application.Features.Settings;
 using CommunityIncidentReporting.Application.Features.Verification;
 using CommunityIncidentReporting.Application.Features.Webhooks;
+using CommunityIncidentReporting.Application.Features.MobileReports;
+using CommunityIncidentReporting.Infrastructure.Email;
 using CommunityIncidentReporting.Infrastructure.Persistence;
 using CommunityIncidentReporting.Infrastructure.Persistence.Seeding;
 using CommunityIncidentReporting.Infrastructure.Security;
 using CommunityIncidentReporting.Infrastructure.Services;
+using CommunityIncidentReporting.Infrastructure.Storage;
 using CommunityIncidentReporting.Infrastructure.WhatsApp;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -84,6 +88,75 @@ public static class DependencyInjection
         services.Configure<WhatsAppOptions>(configuration.GetSection(WhatsAppOptions.SectionName));
         services.AddHttpClient();
         services.AddScoped<IWhatsAppWebhookService, WhatsAppWebhookService>();
+
+        // RESEND_API_KEY / RESEND_FROM_EMAIL / RESEND_FROM_NAME / APP_BASE_URL are read
+        // as flat top-level keys (not a "Resend:" config section) — see ResendOptions.
+        services.Configure<ResendOptions>(o =>
+        {
+            o.ApiKey = configuration["RESEND_API_KEY"] ?? string.Empty;
+            o.FromEmail = configuration["RESEND_FROM_EMAIL"] ?? string.Empty;
+            o.FromName = configuration["RESEND_FROM_NAME"] ?? string.Empty;
+            o.AppBaseUrl = configuration["APP_BASE_URL"] ?? string.Empty;
+        });
+        services.AddHttpClient("Resend", client =>
+        {
+            client.BaseAddress = new Uri("https://api.resend.com/");
+            var apiKey = configuration["RESEND_API_KEY"];
+            if (!string.IsNullOrWhiteSpace(apiKey))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
+            }
+            client.Timeout = TimeSpan.FromSeconds(15);
+        });
+        services.AddScoped<IEmailService, ResendEmailService>();
+
+        services.Configure<OtpOptions>(configuration.GetSection(OtpOptions.SectionName));
+        services.AddScoped<IEmailOtpService, EmailOtpService>();
+
+        var reporterJwtSecret = configuration["Jwt:ReporterSecret"];
+        if (string.IsNullOrWhiteSpace(reporterJwtSecret) || reporterJwtSecret.Length < 32)
+        {
+            throw new InvalidOperationException(
+                "Jwt:ReporterSecret is not configured or is shorter than 32 characters. Set " +
+                "Jwt__ReporterSecret to a long random value distinct from Jwt__Secret (see backend/.env.example) " +
+                "— e.g. `openssl rand -base64 64`.");
+        }
+
+        services.Configure<ReporterJwtOptions>(configuration.GetSection(ReporterJwtOptions.SectionName));
+        services.AddScoped<IReporterJwtTokenGenerator, ReporterJwtTokenGenerator>();
+        services.AddScoped<IReporterAuthService, ReporterAuthService>();
+
+        // SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / SUPABASE_STORAGE_BUCKET are flat
+        // top-level keys — see SupabaseStorageOptions (same convention as ResendOptions).
+        services.Configure<SupabaseStorageOptions>(o =>
+        {
+            o.Url = configuration["SUPABASE_URL"] ?? string.Empty;
+            o.ServiceRoleKey = configuration["SUPABASE_SERVICE_ROLE_KEY"] ?? string.Empty;
+            o.StorageBucket = configuration["SUPABASE_STORAGE_BUCKET"] ?? string.Empty;
+        });
+        services.AddHttpClient("Supabase", client =>
+        {
+            var supabaseUrl = configuration["SUPABASE_URL"];
+            if (!string.IsNullOrWhiteSpace(supabaseUrl))
+            {
+                client.BaseAddress = new Uri($"{supabaseUrl.TrimEnd('/')}/storage/v1/");
+            }
+
+            var serviceRoleKey = configuration["SUPABASE_SERVICE_ROLE_KEY"];
+            if (!string.IsNullOrWhiteSpace(serviceRoleKey))
+            {
+                client.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", serviceRoleKey);
+                client.DefaultRequestHeaders.Add("apikey", serviceRoleKey);
+            }
+            client.Timeout = TimeSpan.FromSeconds(60);
+        });
+        services.AddScoped<ISupabaseStorageService, SupabaseStorageService>();
+
+        services.Configure<MediaUploadOptions>(configuration.GetSection(MediaUploadOptions.SectionName));
+        services.AddScoped<IMobileReportService, MobileReportService>();
+        services.AddScoped<IMediaAttachmentService, MediaAttachmentService>();
 
         return services;
     }

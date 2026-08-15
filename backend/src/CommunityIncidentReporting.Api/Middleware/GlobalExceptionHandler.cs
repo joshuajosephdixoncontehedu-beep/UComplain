@@ -22,6 +22,9 @@ public class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IHos
             InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "invalid_credentials"),
             ForbiddenAccessException => (StatusCodes.Status403Forbidden, "forbidden"),
             BusinessRuleException => (StatusCodes.Status409Conflict, "business_rule_violation"),
+            InvalidOtpException => (StatusCodes.Status400BadRequest, "invalid_otp"),
+            EmailDeliveryException => (StatusCodes.Status502BadGateway, "email_delivery_failed"),
+            StorageException => (StatusCodes.Status502BadGateway, "storage_error"),
             _ => (StatusCodes.Status500InternalServerError, "internal_error")
         };
 

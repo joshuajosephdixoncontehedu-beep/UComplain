@@ -36,7 +36,8 @@ public class VerificationService(AppDbContext db, IAuditLogger auditLogger, IInc
             .OrderBy(r => r.CreatedAt).ThenBy(r => r.Id)
             .Select(r => new VerificationQueueItemDto(
                 r.Id, r.CaseReference, r.Category!.Name, r.LocationDescription, r.Priority, r.VerificationStatus,
-                r.Category!.SlaHours, r.CreatedAt, r.VerificationEvents.Count, r.Reporter!.MaskedContactReference))
+                r.Category!.SlaHours, r.CreatedAt, r.VerificationEvents.Count, r.Reporter!.MaskedContactReference,
+                r.SourceChannel))
             .ToListAsync(cancellationToken);
 
     public async Task<IncidentReportDetailDto> DecideAsync(

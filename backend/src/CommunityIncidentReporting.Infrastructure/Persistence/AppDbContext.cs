@@ -17,6 +17,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<SystemSettings> SystemSettings => Set<SystemSettings>();
+    public DbSet<EmailOtpVerification> EmailOtpVerifications => Set<EmailOtpVerification>();
+    public DbSet<ReporterRefreshToken> ReporterRefreshTokens => Set<ReporterRefreshToken>();
+    public DbSet<IncidentMediaAttachment> IncidentMediaAttachments => Set<IncidentMediaAttachment>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -31,6 +34,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
         configurationBuilder.Properties<SourceChannel>().HaveConversion<string>().HaveMaxLength(16);
         configurationBuilder.Properties<VerificationMethod>().HaveConversion<string>().HaveMaxLength(32);
         configurationBuilder.Properties<VerificationDecisionResult>().HaveConversion<string>().HaveMaxLength(32);
+        configurationBuilder.Properties<EmailOtpPurpose>().HaveConversion<string>().HaveMaxLength(32);
+        configurationBuilder.Properties<MediaType>().HaveConversion<string>().HaveMaxLength(16);
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -1,9 +1,11 @@
+using CommunityIncidentReporting.Application.Common.Interfaces;
 using CommunityIncidentReporting.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace CommunityIncidentReporting.Api.Tests.Integration;
 
@@ -23,12 +25,26 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     public readonly string DatabaseName = $"integration-tests-{Guid.NewGuid()}";
 
+    /// <summary>Captures every email the app under test tries to send — see RecordingEmailService.</summary>
+    public readonly RecordingEmailService EmailService = new();
+
+    /// <summary>Captures every object the app under test tries to store — see RecordingStorageService.</summary>
+    public readonly RecordingStorageService StorageService = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Testing");
 
         builder.ConfigureServices(services =>
         {
+            // Swap the real Resend-backed IEmailService for a capturing test double —
+            // integration tests need the raw OTP code without a live Resend account.
+            services.RemoveAll<IEmailService>();
+            services.AddSingleton<IEmailService>(EmailService);
+
+            // Same idea for Supabase Storage — no live bucket in tests.
+            services.RemoveAll<ISupabaseStorageService>();
+            services.AddSingleton<ISupabaseStorageService>(StorageService);
             // AddDbContext registers the Npgsql UseNpgsql(...) call as an
             // IDbContextOptionsConfiguration<AppDbContext> entry (EF Core 8+, to support
             // multiple configure callbacks), separate from DbContextOptions<AppDbContext>

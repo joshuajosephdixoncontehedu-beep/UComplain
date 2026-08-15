@@ -10,6 +10,7 @@ public record GetReportsQuery : PagedRequest
     public IncidentPriority? Priority { get; init; }
     public CaseStatus? CaseStatus { get; init; }
     public Guid? AssignedAdminId { get; init; }
+    public SourceChannel? SourceChannel { get; init; }
     public string? Location { get; init; }
     public DateTimeOffset? From { get; init; }
     public DateTimeOffset? To { get; init; }

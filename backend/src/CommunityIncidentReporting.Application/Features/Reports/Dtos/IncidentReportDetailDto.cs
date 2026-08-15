@@ -1,3 +1,4 @@
+using CommunityIncidentReporting.Application.Features.MobileReports.Dtos;
 using CommunityIncidentReporting.Domain.Enums;
 
 namespace CommunityIncidentReporting.Application.Features.Reports.Dtos;
@@ -30,4 +31,7 @@ public record IncidentReportDetailDto(
     IReadOnlyList<StatusHistoryDto> StatusHistory,
     IReadOnlyList<InternalNoteDto> Notes,
     IReadOnlyList<ReportAssignmentDto> Assignments,
-    IReadOnlyList<AuditLogEntryDto> AuditTrail);
+    IReadOnlyList<AuditLogEntryDto> AuditTrail,
+    // Metadata only — never a StoragePath or URL. Admins fetch a short-lived signed URL
+    // via GET api/admin/reports/{id}/attachments/{attachmentId}/access-url.
+    IReadOnlyList<MediaAttachmentDto> MediaAttachments);

@@ -47,4 +47,5 @@ public class IncidentReport
     public ICollection<ReportAssignment> ReportAssignments { get; set; } = new List<ReportAssignment>();
     public ICollection<StatusHistory> StatusHistories { get; set; } = new List<StatusHistory>();
     public ICollection<InternalNote> InternalNotes { get; set; } = new List<InternalNote>();
+    public ICollection<IncidentMediaAttachment> MediaAttachments { get; set; } = new List<IncidentMediaAttachment>();
 }

@@ -2,6 +2,7 @@ using System.Text;
 using CommunityIncidentReporting.Application.Features.Analytics;
 using CommunityIncidentReporting.Application.Features.Analytics.Dtos;
 using CommunityIncidentReporting.Application.Features.Dashboard;
+using CommunityIncidentReporting.Application.Features.Dashboard.Dtos;
 using CommunityIncidentReporting.Domain.Enums;
 using CommunityIncidentReporting.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -23,11 +24,13 @@ public class AnalyticsService(AppDbContext db, IDashboardService dashboardServic
 
         var workload = await GetAssignmentWorkloadAsync(fromUtc, toUtc, cancellationToken);
         var resolutionByCategory = await GetResolutionTimeByCategoryAsync(fromUtc, toUtc, cancellationToken);
+        var resolvedBySourceChannel = await GetResolvedBySourceChannelAsync(fromUtc, toUtc, cancellationToken);
+        var verificationOutcomesBySourceChannel = await GetVerificationOutcomesBySourceChannelAsync(fromUtc, toUtc, cancellationToken);
 
         return new AnalyticsResponse(
             dashboard.From, dashboard.To, dashboard.Current, dashboard.ReportVolumeOverTime,
             dashboard.CategoryDistribution, dashboard.StatusDistribution, dashboard.VerificationOutcomeDistribution,
-            workload, resolutionByCategory);
+            workload, resolutionByCategory, resolvedBySourceChannel, verificationOutcomesBySourceChannel);
     }
 
     public async Task<byte[]> ExportCsvAsync(DateOnly? from, DateOnly? to, CancellationToken cancellationToken)
@@ -117,6 +120,28 @@ public class AnalyticsService(AppDbContext db, IDashboardService dashboardServic
         return raw.GroupBy(x => x.CategoryName)
             .Select(g => new CategoryResponseTimeDto(g.Key, g.Average(x => (x.CreatedAt - x.ReportCreatedAt).TotalHours)))
             .OrderBy(x => x.CategoryName)
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<NamedCountDto>> GetResolvedBySourceChannelAsync(
+        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken)
+    {
+        var resolvedInRange = db.IncidentReports.Where(r =>
+            ResolvedStatuses.Contains(r.CaseStatus) && r.UpdatedAt >= fromUtc && r.UpdatedAt <= toUtc);
+        return await DashboardService.GetSourceChannelBreakdownAsync(resolvedInRange, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<SourceChannelVerificationOutcomeDto>> GetVerificationOutcomesBySourceChannelAsync(
+        DateTimeOffset fromUtc, DateTimeOffset toUtc, CancellationToken cancellationToken)
+    {
+        var raw = await db.VerificationEvents
+            .Where(v => v.CreatedAt >= fromUtc && v.CreatedAt <= toUtc)
+            .Select(v => new { v.Result, SourceChannel = v.IncidentReport!.SourceChannel })
+            .ToListAsync(cancellationToken);
+
+        return raw.GroupBy(x => new { x.SourceChannel, x.Result })
+            .Select(g => new SourceChannelVerificationOutcomeDto(g.Key.SourceChannel, g.Key.Result, g.Count()))
+            .OrderBy(x => x.SourceChannel).ThenBy(x => x.Result)
             .ToList();
     }
 }

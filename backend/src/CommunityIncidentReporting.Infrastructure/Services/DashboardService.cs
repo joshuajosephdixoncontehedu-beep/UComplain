@@ -76,9 +76,25 @@ public class DashboardService(AppDbContext db) : IDashboardService
             ? (double?)null
             : resolutionDurations.Average(x => (x.CreatedAt - x.ReportCreatedAt).TotalHours);
 
+        var reportsBySourceChannel = await GetSourceChannelBreakdownAsync(reportsInRange, cancellationToken);
+
         return new DashboardMetricsDto(
             total, awaitingVerification, verifiedAwaitingReview, inProgress, resolved, rejectedDuplicateFlagged,
-            averageVerificationTimeHours, averageResolutionTimeHours);
+            averageVerificationTimeHours, averageResolutionTimeHours, reportsBySourceChannel);
+    }
+
+    /// <summary>
+    /// Client-side grouping — same reasoning as the other distributions in this file:
+    /// EF Core's GroupBy translation over an enum-as-string column is unreliable.
+    /// </summary>
+    internal static async Task<IReadOnlyList<NamedCountDto>> GetSourceChannelBreakdownAsync(
+        IQueryable<IncidentReport> reports, CancellationToken cancellationToken)
+    {
+        var raw = await reports.Select(r => r.SourceChannel).ToListAsync(cancellationToken);
+        return raw.GroupBy(s => s)
+            .Select(g => new NamedCountDto(g.Key.ToString(), g.Count()))
+            .OrderByDescending(x => x.Count)
+            .ToList();
     }
 
     private async Task<IReadOnlyList<TimeSeriesPointDto>> GetReportVolumeAsync(

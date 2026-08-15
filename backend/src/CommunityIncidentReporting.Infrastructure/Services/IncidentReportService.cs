@@ -2,6 +2,7 @@ using System.Linq.Expressions;
 using CommunityIncidentReporting.Application.Common.Exceptions;
 using CommunityIncidentReporting.Application.Common.Interfaces;
 using CommunityIncidentReporting.Application.Common.Models;
+using CommunityIncidentReporting.Application.Features.MobileReports.Dtos;
 using CommunityIncidentReporting.Application.Features.Reports;
 using CommunityIncidentReporting.Application.Features.Reports.Dtos;
 using CommunityIncidentReporting.Domain.Entities;
@@ -60,6 +61,11 @@ public class IncidentReportService(AppDbContext db, IAuditLogger auditLogger) : 
             reports = reports.Where(r => r.AssignedAdminId == assignedAdminId);
         }
 
+        if (query.SourceChannel is { } sourceChannel)
+        {
+            reports = reports.Where(r => r.SourceChannel == sourceChannel);
+        }
+
         if (!string.IsNullOrWhiteSpace(query.Location))
         {
             var term = query.Location.Trim();
@@ -85,7 +91,7 @@ public class IncidentReportService(AppDbContext db, IAuditLogger auditLogger) : 
             .Take(query.PageSize)
             .Select(r => new IncidentReportListItemDto(
                 r.Id, r.CaseReference, r.Category!.Name, r.LocationDescription, r.CreatedAt, r.Priority,
-                r.VerificationStatus, r.CaseStatus, r.AssignedAdminId, r.AssignedAdmin!.FullName))
+                r.VerificationStatus, r.CaseStatus, r.AssignedAdminId, r.AssignedAdmin!.FullName, r.SourceChannel))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<IncidentReportListItemDto>
@@ -326,6 +332,12 @@ public class IncidentReportService(AppDbContext db, IAuditLogger auditLogger) : 
                 a.AssignedAt, a.UnassignedAt))
             .ToListAsync(cancellationToken);
 
+        var attachments = await db.IncidentMediaAttachments
+            .Where(a => a.IncidentReportId == report.Id && !a.IsDeleted)
+            .OrderBy(a => a.SortOrder)
+            .Select(a => new MediaAttachmentDto(a.Id, a.FileName, a.MediaType, a.MimeType, a.FileSizeBytes, a.SortOrder, a.UploadedAt))
+            .ToListAsync(cancellationToken);
+
         var auditEntityId = report.Id.ToString();
         var auditTrail = await db.AuditLogs
             .Where(l => l.EntityType == nameof(IncidentReport) && l.EntityId == auditEntityId)
@@ -342,6 +354,6 @@ public class IncidentReportService(AppDbContext db, IAuditLogger auditLogger) : 
             report.LocationDescription, report.Latitude, report.Longitude, report.MediaReference,
             report.VerificationStatus, report.CaseStatus, report.Priority, report.AssignedAdminId, assignedAdminName,
             report.ResolutionSummary, report.CreatedAt, report.UpdatedAt, report.ClosedAt,
-            verificationHistory, statusHistory, notes, assignments, auditTrail);
+            verificationHistory, statusHistory, notes, assignments, auditTrail, attachments);
     }
 }

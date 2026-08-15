@@ -11,4 +11,7 @@ public record AnalyticsResponse(
     IReadOnlyList<NamedCountDto> StatusDistribution,
     IReadOnlyList<NamedCountDto> VerificationOutcomeDistribution,
     IReadOnlyList<AssignmentWorkloadDto> AssignmentWorkload,
-    IReadOnlyList<CategoryResponseTimeDto> ResolutionTimeByCategory);
+    IReadOnlyList<CategoryResponseTimeDto> ResolutionTimeByCategory,
+    // Additive — see docs/mobile-client-backend-extension.md's admin-unification section.
+    IReadOnlyList<NamedCountDto> ResolvedBySourceChannel,
+    IReadOnlyList<SourceChannelVerificationOutcomeDto> VerificationOutcomesBySourceChannel);

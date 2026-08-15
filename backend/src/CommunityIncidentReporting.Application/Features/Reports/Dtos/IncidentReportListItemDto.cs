@@ -12,4 +12,5 @@ public record IncidentReportListItemDto(
     VerificationStatus VerificationStatus,
     CaseStatus CaseStatus,
     Guid? AssignedAdminId,
-    string? AssignedAdminName);
+    string? AssignedAdminName,
+    SourceChannel SourceChannel);

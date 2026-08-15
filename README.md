@@ -84,6 +84,15 @@ layer.
    `backend/src/CommunityIncidentReporting.Api/.env` (see
    [`backend/.env.example`](backend/.env.example)) or your shell environment as
    `ConnectionStrings__DefaultConnection`.
+4. **Storage bucket for mobile-app incident media**: run
+   [`backend/supabase-storage-setup.sql`](backend/supabase-storage-setup.sql) once in
+   the Supabase SQL Editor (or create a private bucket named `incident-media` — or
+   whatever `SUPABASE_STORAGE_BUCKET` is set to — by hand in **Storage → New bucket**,
+   leaving "Public bucket" **off**). The backend only ever accesses this bucket through
+   the service-role key (backend-only, never returned to a client) and issues
+   short-lived signed URLs for reporter/admin viewing — there is no public bucket URL.
+   Get the URL and service-role key from **Project Settings → API** for
+   `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## Environment variables
 
@@ -122,7 +131,12 @@ dotnet tool install --global dotnet-ef --version 9.0.19   # once per machine
 dotnet ef database update --project src/CommunityIncidentReporting.Infrastructure --startup-project src/CommunityIncidentReporting.Api
 ```
 
-This applies the schema. **Seeding** happens separately: `dotnet ef database update`
+This applies the schema — including `AddReporterMobileAuthAndMedia`, the additive
+migration backing the mobile reporter API (new `Reporter` columns, plus the
+`email_otp_verifications`, `reporter_refresh_tokens`, and `incident_media_attachments`
+tables). No existing table, column, or row is dropped or altered destructively.
+
+**Seeding** happens separately: `dotnet ef database update`
 (and `migrations add`) always run through a design-time factory that never touches
 this app's real dependency injection container, so the `UseSeeding`/`UseAsyncSeeding`
 hooks configured in `AddInfrastructure` can't run there. Instead, `Program.cs` calls
@@ -146,6 +160,27 @@ for local development convenience:
 | mohamed.sesay@cirs.gov.sl | IncidentManager |
 | fatmata.koroma@cirs.gov.sl | Reviewer |
 | ibrahim.turay@cirs.gov.sl | ReadOnlyAnalyst |
+
+## Mobile reporter API
+
+A second, mobile-app intake channel exists alongside WhatsApp: reporters self-register
+with email/password (verified via a 6-digit email OTP sent through Resend), submit
+incident reports with multiple photo/video/audio/document attachments (stored in a
+private Supabase Storage bucket, accessed only via short-lived signed URLs), and see
+their own report's status. Every mobile report flows through the same
+verification/case-management pipeline a WhatsApp report does, and both channels are
+visible together in the admin dashboard (filterable by `sourceChannel`).
+
+Mobile reporter authentication is a **separate JWT scheme** from admin authentication
+(`Jwt__ReporterSecret`, distinct from `Jwt__Secret`) — a reporter token can never access
+an admin endpoint, and vice versa. See:
+
+- [`docs/mobile-client-backend-extension.md`](docs/mobile-client-backend-extension.md) —
+  the design record (architecture decisions, phase-by-phase file map).
+- [`docs/mobile-api-contract.md`](docs/mobile-api-contract.md) — every `api/mobile/...`
+  endpoint's request/response/auth/error shape.
+
+This is backend-only; no mobile app UI is implemented.
 
 ## Running the frontend
 
@@ -230,6 +265,22 @@ for any of these — same rule as the local `.env`):
 | `WhatsApp__PhoneNumberId` | Meta App → WhatsApp → API Setup → phone number ID |
 | `WhatsApp__ApiVersion` | `v21.0` |
 | `WhatsApp__NumberHashKey` | A long random value, generated once — see [`docs/whatsapp-integration-plan.md`](docs/whatsapp-integration-plan.md) |
+| `Jwt__ReporterSecret` | A long random value, **different from both `Jwt__Secret` and the local dev value** — mobile reporter tokens are signed with their own key so they can never be confused with (or forged from a leak of) the admin signing key |
+| `Jwt__ReporterIssuer` | `UComplain` |
+| `Jwt__ReporterAudience` | `UComplain.MobileApp` |
+| `Jwt__ReporterAccessTokenMinutes` | `15` |
+| `Jwt__ReporterRefreshTokenDays` | `30` |
+| `Otp__HashKey` | A long random value, generated once (rotating only invalidates in-flight OTPs, not accounts) |
+| `Otp__ExpiryMinutes` | `10` |
+| `Otp__MaxAttempts` | `5` |
+| `Otp__ResendCooldownSeconds` | `60` |
+| `RESEND_API_KEY` | From [resend.com/api-keys](https://resend.com/api-keys) — used for mobile-reporter OTP/welcome email, sent via Resend's HTTP API since Render has no outbound SMTP |
+| `RESEND_FROM_EMAIL` | Must be on a domain verified in the Resend account |
+| `RESEND_FROM_NAME` | `UComplain` |
+| `APP_BASE_URL` | The deployed backend's own public URL, e.g. `https://ucomplain-api.onrender.com` |
+| `SUPABASE_URL` | Project Settings → API → Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API → `service_role` secret key — backend-only, never exposed to any client |
+| `SUPABASE_STORAGE_BUCKET` | `incident-media` (see [Supabase setup](#supabase-setup) step 4) |
 
 Render assigns the container a port via the `$PORT` environment variable at runtime —
 `Program.cs` reads it and binds Kestrel there directly, so nothing extra is needed on

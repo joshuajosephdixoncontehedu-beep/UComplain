@@ -4,6 +4,7 @@ using CommunityIncidentReporting.Api.Filters;
 using CommunityIncidentReporting.Api.Middleware;
 using CommunityIncidentReporting.Domain.Enums;
 using CommunityIncidentReporting.Infrastructure;
+using CommunityIncidentReporting.Infrastructure.Security;
 using DotNetEnv;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -12,6 +13,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+
+// The reporter JWT scheme's name — a distinct ASP.NET Core auth scheme (not just a
+// different audience under the default scheme) is what makes Policies.RequireReporter
+// able to reject admin tokens outright via AddAuthenticationSchemes, before any claim is
+// even inspected.
+const string ReporterSchemeName = "ReporterScheme";
 
 // Local development convenience only: if a .env file sits next to this project and no
 // ASPNETCORE_ENVIRONMENT is set to something other than Development, load it into the
@@ -127,6 +134,25 @@ try
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.FromMinutes(1)
             };
+        })
+        // A second, independently-keyed scheme for mobile reporters — its own signing
+        // secret and audience (Jwt:ReporterSecret/ReporterAudience) mean an admin token
+        // can never pass validation here, and a reporter token can never pass validation
+        // against the default scheme above. See ReporterJwtTokenGenerator/Policies.RequireReporter.
+        .AddJwtBearer(ReporterSchemeName, options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = builder.Configuration["Jwt:ReporterIssuer"],
+                ValidateAudience = true,
+                ValidAudience = builder.Configuration["Jwt:ReporterAudience"],
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(
+                    Encoding.UTF8.GetBytes(builder.Configuration["Jwt:ReporterSecret"]!)),
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(1)
+            };
         });
 
     builder.Services.AddAuthorizationBuilder()
@@ -134,7 +160,41 @@ try
         .AddPolicy(Policies.ManagerOrAbove, p => p.RequireRole(
             nameof(AdminRole.SuperAdmin), nameof(AdminRole.IncidentManager)))
         .AddPolicy(Policies.ReviewerOrAbove, p => p.RequireRole(
-            nameof(AdminRole.SuperAdmin), nameof(AdminRole.IncidentManager), nameof(AdminRole.Reviewer)));
+            nameof(AdminRole.SuperAdmin), nameof(AdminRole.IncidentManager), nameof(AdminRole.Reviewer)))
+        .AddPolicy(Policies.RequireAdmin, p => p
+            .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+            .RequireAuthenticatedUser())
+        .AddPolicy(Policies.RequireReporter, p => p
+            .AddAuthenticationSchemes(ReporterSchemeName)
+            .RequireAuthenticatedUser()
+            .RequireClaim(System.Security.Claims.ClaimTypes.Role, ReporterJwtTokenGenerator.ReporterRoleClaimValue));
+
+    // Named limiter policies for the mobile auth/OTP endpoints — see
+    // MobileAuthController's [EnableRateLimiting] attributes. Partitioned by client IP
+    // (X-Forwarded-For is honored below via UseForwardedHeaders) so one abusive caller
+    // can't exhaust another's quota; admin endpoints are untouched.
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+        options.AddPolicy("auth", httpContext => System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 10,
+                QueueLimit = 0
+            }));
+
+        options.AddPolicy("otp", httpContext => System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
+            httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new System.Threading.RateLimiting.FixedWindowRateLimiterOptions
+            {
+                Window = TimeSpan.FromMinutes(1),
+                PermitLimit = 5,
+                QueueLimit = 0
+            }));
+    });
 
     var app = builder.Build();
 
@@ -188,6 +248,8 @@ try
     app.UseHttpsRedirection();
 
     app.UseCors(CorsPolicyName);
+
+    app.UseRateLimiter();
 
     app.UseAuthentication();
     app.UseAuthorization();

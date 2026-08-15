@@ -8,4 +8,6 @@ public record DashboardMetricsDto(
     int Resolved,
     int RejectedDuplicateOrFlagged,
     double? AverageVerificationTimeHours,
-    double? AverageResolutionTimeHours);
+    double? AverageResolutionTimeHours,
+    // Additive: total reports in range broken down by SourceChannel (e.g. "WhatsApp", "MobileApp").
+    IReadOnlyList<NamedCountDto> ReportsBySourceChannel);

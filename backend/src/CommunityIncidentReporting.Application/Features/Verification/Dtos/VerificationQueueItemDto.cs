@@ -12,4 +12,5 @@ public record VerificationQueueItemDto(
     int CategorySlaHours,
     DateTimeOffset CreatedAt,
     int AttemptCount,
-    string ReporterMaskedContact);
+    string ReporterMaskedContact,
+    SourceChannel SourceChannel);

@@ -122,6 +122,65 @@ namespace CommunityIncidentReporting.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_logs", (string)null);
                 });
 
+            modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.EmailOtpVerification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MaxAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("ReporterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RequestIp")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterId");
+
+                    b.HasIndex("Email", "Purpose", "IsUsed", "ExpiresAt");
+
+                    b.ToTable("email_otp_verifications", (string)null);
+                });
+
             modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.IncidentCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -164,6 +223,67 @@ namespace CommunityIncidentReporting.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("incident_categories", (string)null);
+                });
+
+            modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.IncidentMediaAttachment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<long>("FileSizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("IncidentReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MediaType")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
+                    b.Property<string>("MimeType")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("PublicOrSignedUrlReference")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StoragePath")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTimeOffset>("UploadedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UploadedByReporterId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoragePath")
+                        .IsUnique();
+
+                    b.HasIndex("IncidentReportId", "SortOrder");
+
+                    b.ToTable("incident_media_attachments", (string)null);
                 });
 
             modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.IncidentReport", b =>
@@ -379,13 +499,48 @@ namespace CommunityIncidentReporting.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<DateTimeOffset?>("EmailVerifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FullName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("IsRestricted")
                         .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("LastLoginAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("MaskedContactReference")
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
+
+                    b.Property<string>("NormalizedEmail")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)");
+
+                    b.Property<string>("PasswordHash")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("RestrictionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -402,10 +557,52 @@ namespace CommunityIncidentReporting.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("NormalizedEmail")
+                        .IsUnique()
+                        .HasFilter("\"NormalizedEmail\" IS NOT NULL");
+
                     b.HasIndex("WhatsAppNumberHash")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"WhatsAppNumberHash\" <> ''");
 
                     b.ToTable("reporters", (string)null);
+                });
+
+            modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.ReporterRefreshToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReplacedByTokenHash")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("ReporterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ReporterId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("reporter_refresh_tokens", (string)null);
                 });
 
             modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.StatusHistory", b =>
@@ -554,6 +751,27 @@ namespace CommunityIncidentReporting.Infrastructure.Persistence.Migrations
                     b.Navigation("AdminUser");
                 });
 
+            modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.EmailOtpVerification", b =>
+                {
+                    b.HasOne("CommunityIncidentReporting.Domain.Entities.Reporter", "Reporter")
+                        .WithMany()
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Reporter");
+                });
+
+            modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.IncidentMediaAttachment", b =>
+                {
+                    b.HasOne("CommunityIncidentReporting.Domain.Entities.IncidentReport", "IncidentReport")
+                        .WithMany("MediaAttachments")
+                        .HasForeignKey("IncidentReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("IncidentReport");
+                });
+
             modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.IncidentReport", b =>
                 {
                     b.HasOne("CommunityIncidentReporting.Domain.Entities.AdminUser", "AssignedAdmin")
@@ -637,6 +855,17 @@ namespace CommunityIncidentReporting.Infrastructure.Persistence.Migrations
                     b.Navigation("IncidentReport");
                 });
 
+            modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.ReporterRefreshToken", b =>
+                {
+                    b.HasOne("CommunityIncidentReporting.Domain.Entities.Reporter", "Reporter")
+                        .WithMany("RefreshTokens")
+                        .HasForeignKey("ReporterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Reporter");
+                });
+
             modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.StatusHistory", b =>
                 {
                     b.HasOne("CommunityIncidentReporting.Domain.Entities.AdminUser", "ChangedByAdmin")
@@ -698,6 +927,8 @@ namespace CommunityIncidentReporting.Infrastructure.Persistence.Migrations
                 {
                     b.Navigation("InternalNotes");
 
+                    b.Navigation("MediaAttachments");
+
                     b.Navigation("ReportAssignments");
 
                     b.Navigation("StatusHistories");
@@ -708,6 +939,8 @@ namespace CommunityIncidentReporting.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("CommunityIncidentReporting.Domain.Entities.Reporter", b =>
                 {
                     b.Navigation("IncidentReports");
+
+                    b.Navigation("RefreshTokens");
 
                     b.Navigation("VerificationEvents");
                 });
