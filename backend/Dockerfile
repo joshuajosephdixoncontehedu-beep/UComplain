@@ -28,6 +28,17 @@ COPY --from=build /app/publish .
 # auto-migrate/seed startup hook, neither of which belong in production).
 ENV ASPNETCORE_ENVIRONMENT=Production
 
+# Disables WebApplication.CreateBuilder's default appsettings.json/appsettings.{env}.json
+# hot-reload, which otherwise creates a FileSystemWatcher (inotify) at startup. Render's
+# containers have a low, shared inotify-instance budget that's easy to exhaust (observed
+# as "IOException: The configured user limit (128) on the number of inotify instances has
+# been reached", crashing the app before it can even bind a port) — and there's nothing to
+# hot-reload anyway: this whole image gets redeployed on any config/env change, there's no
+# writable appsettings.json to edit inside a running container. Must be DOTNET_-prefixed
+# (not ASPNETCORE_-prefixed) to be read early enough in the bootstrap configuration pass
+# that builds this exact setting.
+ENV DOTNET_hostBuilder__reloadConfigOnChange=false
+
 # Informational only — Program.cs binds to the platform's $PORT at runtime (Render
 # assigns one dynamically), so this isn't the actual source of truth for the port.
 EXPOSE 8080
