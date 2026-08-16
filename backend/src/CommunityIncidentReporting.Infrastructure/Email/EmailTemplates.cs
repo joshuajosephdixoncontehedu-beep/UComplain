@@ -41,9 +41,14 @@ public static class EmailTemplates
             var bytes = File.ReadAllBytes(path);
             return $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
         }
-        catch (IOException)
+        catch (Exception)
         {
-            // Falls back to no logo (see Wrap) rather than crashing email send over a missing asset.
+            // Deliberately broad: a logo image is never worth breaking the OTP/registration
+            // email flow over. Falls back to no logo (see Wrap) on any failure reading it —
+            // missing file, permissions, whatever — rather than just IOException. Lazy<T>
+            // caches whatever this returns (including a thrown exception) for the lifetime
+            // of the process, so an uncaught exception here would permanently break every
+            // email this backend sends until the next restart, not just the first one.
             return null;
         }
     }

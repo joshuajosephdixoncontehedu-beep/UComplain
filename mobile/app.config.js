@@ -20,15 +20,6 @@ module.exports = {
       'android.permission.ACCESS_COARSE_LOCATION',
       'android.permission.ACCESS_FINE_LOCATION',
     ],
-    config: {
-      googleMaps: {
-        // Required for the Map tab to render real tiles on Android — a Google Cloud
-        // project with the "Maps SDK for Android" enabled, restricted to this app's
-        // package name (online.ucomplain.app) + release/dev-client SHA-1 fingerprint.
-        // Without it, the map view still renders but shows no tiles.
-        apiKey: process.env.GOOGLE_MAPS_API_KEY ?? '',
-      },
-    },
   },
   web: {
     output: 'static',
@@ -65,13 +56,7 @@ module.exports = {
       },
     ],
     'expo-asset',
-    [
-      'expo-maps',
-      {
-        requestLocationPermission: true,
-        locationPermission: 'U Complain uses your location to center the map and show incidents near you.',
-      },
-    ],
+    '@maplibre/maplibre-react-native',
   ],
   experiments: {
     typedRoutes: true,
