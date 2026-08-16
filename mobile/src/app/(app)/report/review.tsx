@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { InfoBanner } from '@/components/ui/info-banner';
 import { useReportDraft } from '@/components/report/report-draft-context';
 import { SummaryRow } from '@/components/report/summary-row';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 
 function formatWhen(d: Date) {
   const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -25,6 +26,7 @@ function evidenceSummary(photoCount: number, hasVoiceNote: boolean) {
 /** Figma "12 Review report" (node 12:2). Submits via POST /reports/drafts/{id}/submit. */
 export default function ReviewReport() {
   const { draft, submit } = useReportDraft();
+  const topOffset = useScreenTopOffset();
   const [confirmed, setConfirmed] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export default function ReviewReport() {
 
   return (
     <ScrollView className="flex-1 bg-canvas" contentContainerClassName="px-5 pb-10">
-      <View className="mt-[64px] flex-row items-center gap-5">
+      <View className="flex-row items-center gap-5" style={{ marginTop: topOffset }}>
         <BackButton />
         <Text className="text-body-lg font-semibold text-ink">Review your report</Text>
       </View>

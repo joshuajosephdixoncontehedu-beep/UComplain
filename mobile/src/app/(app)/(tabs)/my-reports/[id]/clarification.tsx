@@ -7,6 +7,7 @@ import { AppButton } from '@/components/ui/button';
 import { BackButton } from '@/components/ui/back-button';
 import { InfoBanner } from '@/components/ui/info-banner';
 import { useReporterAuth } from '@/components/auth/reporter-auth-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 import { clarificationsApi } from '@/lib/api/clarifications';
 import { ClarificationRequest, reportsApi } from '@/lib/api/reports';
 
@@ -25,6 +26,7 @@ function formatDateTime(iso: string) {
 export default function NeedsClarification() {
   const { id, clarificationId } = useLocalSearchParams<{ id: string; clarificationId?: string }>();
   const { authorizedRequest } = useReporterAuth();
+  const topOffset = useScreenTopOffset();
 
   const [clarification, setClarification] = useState<ClarificationRequest | null>(null);
   const [loading, setLoading] = useState(!!clarificationId);
@@ -78,7 +80,7 @@ export default function NeedsClarification() {
 
   return (
     <ScrollView className="flex-1 bg-canvas" contentContainerClassName="px-5 pb-10">
-      <View className="mt-[64px] flex-row items-center gap-5">
+      <View className="flex-row items-center gap-5" style={{ marginTop: topOffset }}>
         <BackButton />
         <Text className="text-body-lg font-semibold text-ink">{clarification ? 'Needs clarification' : 'Add information'}</Text>
       </View>

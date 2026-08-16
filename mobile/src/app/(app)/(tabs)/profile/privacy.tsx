@@ -6,6 +6,7 @@ import { BackButton } from '@/components/ui/back-button';
 import { MenuRow } from '@/components/ui/menu-row';
 import { ToggleRow } from '@/components/ui/toggle-row';
 import { useReporterAuth } from '@/components/auth/reporter-auth-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 import { AccountDeletionRequest, DataExportRequest, meApi, ReporterPrivacySetting } from '@/lib/api/me';
 
 const WHAT_WE_STORE = [
@@ -28,6 +29,7 @@ const EXPORT_SUBTITLE: Record<DataExportRequest['status'], string> = {
 /** Figma "20 Privacy & data" (node 18:165). */
 export default function PrivacyAndData() {
   const { authorizedRequest } = useReporterAuth();
+  const topOffset = useScreenTopOffset();
 
   const [privacy, setPrivacy] = useState<ReporterPrivacySetting | null>(null);
   useEffect(() => {
@@ -97,7 +99,7 @@ export default function PrivacyAndData() {
 
   return (
     <ScrollView className="flex-1 bg-canvas" contentContainerClassName="pb-10">
-      <View className="mt-[64px] flex-row items-center gap-5 px-5">
+      <View className="flex-row items-center gap-5 px-5" style={{ marginTop: topOffset }}>
         <BackButton />
         <Text className="text-body-lg font-semibold text-ink">Privacy & data</Text>
       </View>

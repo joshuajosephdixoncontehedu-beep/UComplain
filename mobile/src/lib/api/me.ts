@@ -27,6 +27,8 @@ export type DataExportRequest = {
   failureReason: string | null;
 };
 
+export type ProfilePhoto = { photoUrl: string | null; expiresAt: string | null };
+
 export type AccountDeletionStatus = 'Pending' | 'Cancelled' | 'Completed';
 export type AccountDeletionRequest = {
   id: string;
@@ -48,6 +50,12 @@ export const meApi = {
 
   updateProfile: (req: AuthorizedRequest, input: { fullName: string; languagePreference?: string | null }) =>
     req<ReporterProfile>('api/mobile/me', { method: 'PATCH', body: input }),
+
+  getPhoto: (req: AuthorizedRequest) => req<ProfilePhoto>('api/mobile/me/photo'),
+
+  uploadPhoto: (req: AuthorizedRequest, form: FormData) => req<ProfilePhoto>('api/mobile/me/photo', { method: 'POST', form }),
+
+  removePhoto: (req: AuthorizedRequest) => req<void>('api/mobile/me/photo', { method: 'DELETE' }),
 
   requestDataExport: (req: AuthorizedRequest) => req<DataExportRequest>('api/mobile/me/data-export', { method: 'POST' }),
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 
 import { useReporterAuth } from '@/components/auth/reporter-auth-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 import { NotificationItem, NotificationType, notificationsApi } from '@/lib/api/notifications';
 
 const TYPE_ICON: Record<NotificationType, keyof typeof Ionicons.glyphMap> = {
@@ -53,6 +54,7 @@ function NotificationRow({ item, onPress }: { item: NotificationItem; onPress: (
 /** Figma "18 Notifications" (node 17:172), reached via Home's bell icon. */
 export default function Notifications() {
   const { authorizedRequest } = useReporterAuth();
+  const topOffset = useScreenTopOffset();
   const [items, setItems] = useState<NotificationItem[] | null>(null);
   const [error, setError] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -102,7 +104,7 @@ export default function Notifications() {
           }}
         />
       }>
-      <View className="mt-[68px] flex-row items-center justify-between px-5">
+      <View className="flex-row items-center justify-between px-5" style={{ marginTop: topOffset }}>
         <Text className="text-h1 text-ink">Notifications</Text>
         {hasUnread ? (
           <Pressable hitSlop={8} onPress={onMarkAllRead}>

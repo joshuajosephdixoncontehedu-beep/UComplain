@@ -1,9 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, Tabs } from 'expo-router';
 import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const BRAND = '#1D4ED8'; // --brand-primary
 const MUTED = '#94A3B8'; // --text-subtle
+
+const TAB_BAR_CONTENT_HEIGHT = 58;
 
 /**
  * Figma "07 Home" (node 8:3): the bottom nav is Home / Reports / Map /
@@ -12,6 +15,9 @@ const MUTED = '#94A3B8'; // --text-subtle
  * reached from the bell icon in the Home header (see home.tsx).
  */
 export default function TabsLayout() {
+  const insets = useSafeAreaInsets();
+  const tabBarHeight = TAB_BAR_CONTENT_HEIGHT + insets.bottom;
+
   return (
     <View className="flex-1">
       <Tabs
@@ -19,6 +25,24 @@ export default function TabsLayout() {
           headerShown: false,
           tabBarActiveTintColor: BRAND,
           tabBarInactiveTintColor: MUTED,
+          tabBarShowLabel: true,
+          tabBarStyle: {
+            height: tabBarHeight,
+            paddingTop: 8,
+            paddingBottom: insets.bottom + 6,
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 1,
+            borderTopColor: '#E2E8F0',
+            elevation: 0,
+            shadowOpacity: 0,
+          },
+          tabBarLabelStyle: {
+            fontSize: 11,
+            fontWeight: '600',
+          },
+          tabBarItemStyle: {
+            paddingTop: 2,
+          },
         }}>
         <Tabs.Screen
           name="home"
@@ -54,7 +78,8 @@ export default function TabsLayout() {
 
       <Pressable
         onPress={() => router.push('/(app)/report/category')}
-        className="absolute bottom-6 left-1/2 h-[62px] w-[62px] -translate-x-1/2 items-center justify-center rounded-full bg-brand shadow-lg active:bg-brand-deep">
+        className="absolute left-1/2 h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full bg-brand shadow-lg active:bg-brand-deep"
+        style={{ bottom: tabBarHeight - 30, borderWidth: 4, borderColor: '#FFFFFF' }}>
         <Ionicons name="add" size={28} color="#FFFFFF" />
       </Pressable>
     </View>

@@ -39,6 +39,9 @@ public class Reporter
 
     /// <summary>BCP-47-ish tag (e.g. "en", "kri") — display preference only, never used for validation logic.</summary>
     public string? LanguagePreference { get; set; }
+
+    /// <summary>Object path in the private Supabase Storage bucket (see ISupabaseStorageService) — never a direct URL.</summary>
+    public string? ProfilePhotoStoragePath { get; set; }
     public DateTimeOffset? TermsAcceptedAt { get; set; }
     public string? TermsAcceptedVersion { get; set; }
 

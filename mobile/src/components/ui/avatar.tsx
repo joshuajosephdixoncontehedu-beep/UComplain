@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
 function initials(name: string): string {
@@ -5,8 +6,18 @@ function initials(name: string): string {
   return ((parts[0]?.[0] ?? '') + (parts[parts.length - 1]?.[0] ?? '')).toUpperCase();
 }
 
-/** Figma: 44×44 initials avatar (e.g. Home header, "AK" for Amina Kargbo). */
-export function Avatar({ name, size = 44 }: { name: string; size?: number }) {
+/** Figma: 44×44 avatar (e.g. Home header). Shows the reporter's real photo when set, initials otherwise. */
+export function Avatar({ name, size = 44, photoUrl }: { name: string; size?: number; photoUrl?: string | null }) {
+  if (photoUrl) {
+    return (
+      <Image
+        source={{ uri: photoUrl }}
+        style={{ width: size, height: size, borderRadius: size / 2 }}
+        contentFit="cover"
+      />
+    );
+  }
+
   return (
     <View
       className="items-center justify-center rounded-full bg-brand-tint"

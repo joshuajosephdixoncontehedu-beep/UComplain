@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/button';
 import { InfoBanner } from '@/components/ui/info-banner';
 import { useReportDraft } from '@/components/report/report-draft-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 
 const NEXT_STEPS: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string }[] = [
   { icon: 'search-outline', title: 'Verification check', description: 'We confirm the details and check for duplicates.' },
@@ -17,13 +19,22 @@ const NEXT_STEPS: { icon: keyof typeof Ionicons.glyphMap; title: string; descrip
 export default function ReportSubmitted() {
   const { caseReference } = useLocalSearchParams<{ caseReference?: string }>();
   const { reset } = useReportDraft();
+  const topOffset = useScreenTopOffset(64);
+  const [copied, setCopied] = useState(false);
 
   // Draft is consumed once submitted; clear it so a future report starts fresh.
   useEffect(() => reset(), [reset]);
 
+  const onCopy = async () => {
+    if (!caseReference) return;
+    await Clipboard.setStringAsync(caseReference);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <ScrollView className="flex-1 bg-canvas" contentContainerClassName="items-center px-5 pb-10">
-      <View className="mt-[108px] h-24 w-24 items-center justify-center rounded-full bg-status-resolved-tint">
+      <View className="h-24 w-24 items-center justify-center rounded-full bg-status-resolved-tint" style={{ marginTop: topOffset }}>
         <View className="h-[68px] w-[68px] items-center justify-center rounded-full bg-status-resolved">
           <Ionicons name="checkmark" size={34} color="#FFFFFF" />
         </View>
@@ -41,9 +52,9 @@ export default function ReportSubmitted() {
           <Text className="text-eyebrow uppercase tracking-wide text-muted">Case reference</Text>
           <Text className="mt-1 text-h2 text-ink">{caseReference ?? '—'}</Text>
         </View>
-        <Pressable onPress={() => {}} className="flex-row items-center gap-1.5 rounded-input border border-border px-3 py-2">
-          <Ionicons name="copy-outline" size={15} color="#334155" />
-          <Text className="text-label text-secondary">Copy</Text>
+        <Pressable onPress={onCopy} className="flex-row items-center gap-1.5 rounded-input border border-border px-3 py-2">
+          <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={15} color="#334155" />
+          <Text className="text-label text-secondary">{copied ? 'Copied' : 'Copy'}</Text>
         </Pressable>
       </View>
 

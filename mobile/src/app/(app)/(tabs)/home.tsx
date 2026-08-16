@@ -6,6 +6,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, Text, View } 
 import { Avatar } from '@/components/ui/avatar';
 import { ReportCard } from '@/components/ui/report-card';
 import { useReporterAuth } from '@/components/auth/reporter-auth-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 import { MobileReportListItem, reportsApi } from '@/lib/api/reports';
 import { iconForCategory, useCategories } from '@/lib/use-categories';
 
@@ -23,9 +24,10 @@ function relativeTime(iso: string): string {
 
 /** Figma "07 Home" (node 8:3). */
 export default function Home() {
-  const { reporter, authorizedRequest } = useReporterAuth();
+  const { reporter, authorizedRequest, photoUrl } = useReporterAuth();
   const { categories, iconByName } = useCategories();
   const reporterName = reporter?.fullName ?? '';
+  const topOffset = useScreenTopOffset();
 
   const [recent, setRecent] = useState<MobileReportListItem[] | null>(null);
   const [loadError, setLoadError] = useState(false);
@@ -64,8 +66,8 @@ export default function Home() {
           }}
         />
       }>
-      <View className="mt-[68px] flex-row items-center gap-3">
-        <Avatar name={reporterName} />
+      <View className="flex-row items-center gap-3" style={{ marginTop: topOffset }}>
+        <Avatar name={reporterName} photoUrl={photoUrl} />
         <View className="flex-1">
           <Text className="text-body-sm text-muted">Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'}</Text>
           <Text className="text-h2 text-ink">{reporterName}</Text>

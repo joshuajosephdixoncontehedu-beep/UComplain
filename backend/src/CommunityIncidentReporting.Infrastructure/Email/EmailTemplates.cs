@@ -7,15 +7,18 @@ namespace CommunityIncidentReporting.Infrastructure.Email;
 /// sends. Deliberately simple (no external templating engine) — three short messages
 /// don't justify one. HTML uses a table-based layout with fully inline styles (no
 /// &lt;style&gt; block) — the safest pattern across email clients that strip &lt;head&gt;
-/// styles or ignore flexbox/grid (notably Outlook desktop). The logo is served by this
-/// same backend at {appBaseUrl}/images/ucomplain-logo.png (see Program.cs's
-/// UseStaticFiles() and wwwroot/images/) rather than embedded as a data URI, since
-/// Outlook desktop strips data: image sources.
+/// styles or ignore flexbox/grid (notably Outlook desktop). The logo is read directly from
+/// wwwroot/images/ and embedded as a data URI, computed once at class load — this used to
+/// build a URL against APP_BASE_URL instead, but that env var is easy to leave unset on a
+/// fresh deploy (it isn't in render.yaml's tracked vars), which silently produced a bare
+/// "/images/..." path with no host — meaningless outside a browser, so every email client
+/// just showed a broken-image placeholder. A data URI has no such dependency. The
+/// tradeoff: Outlook desktop strips data: image sources, so the logo won't render there —
+/// acceptable since every other client (Gmail, Apple Mail, Outlook web/mobile) shows it.
 /// </summary>
 public static class EmailTemplates
 {
     private const string FooterText = "UComplain — Community Incident Reporting";
-    private const string LogoPath = "/images/ucomplain-logo.png";
 
     // Matches the frontend's brand palette (frontend/src/app/globals.css).
     private const string NavyColor = "#0f1f3d";
@@ -28,12 +31,29 @@ public static class EmailTemplates
     private const string BorderColor = "#e2e8f0";
     private const string FooterBgColor = "#f8fafc";
 
+    private static readonly Lazy<string?> LogoDataUri = new(BuildLogoDataUri);
+
+    private static string? BuildLogoDataUri()
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "wwwroot", "images", "ucomplain-logo.png");
+            var bytes = File.ReadAllBytes(path);
+            return $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
+        }
+        catch (IOException)
+        {
+            // Falls back to no logo (see Wrap) rather than crashing email send over a missing asset.
+            return null;
+        }
+    }
+
     public static (string Subject, string Html, string Text) EmailVerificationOtp(
-        string appBaseUrl, string fullName, string code, int expiryMinutes)
+        string fullName, string code, int expiryMinutes)
     {
         var subject = "Verify your email — UComplain";
         var greeting = WebUtility.HtmlEncode(fullName);
-        var html = Wrap(appBaseUrl, "Verify your email", $"""
+        var html = Wrap("Verify your email", $"""
             <p style="margin:0 0 16px;">Hi {greeting},</p>
             <p style="margin:0 0 8px;">Use the code below to verify your email address. It expires in
             <strong>{expiryMinutes} minutes</strong>.</p>
@@ -45,11 +65,11 @@ public static class EmailTemplates
     }
 
     public static (string Subject, string Html, string Text) PasswordResetOtp(
-        string appBaseUrl, string fullName, string code, int expiryMinutes)
+        string fullName, string code, int expiryMinutes)
     {
         var subject = "Reset your password — UComplain";
         var greeting = WebUtility.HtmlEncode(fullName);
-        var html = Wrap(appBaseUrl, "Reset your password", $"""
+        var html = Wrap("Reset your password", $"""
             <p style="margin:0 0 16px;">Hi {greeting},</p>
             <p style="margin:0 0 8px;">Use the code below to reset your password. It expires in
             <strong>{expiryMinutes} minutes</strong>.</p>
@@ -61,11 +81,11 @@ public static class EmailTemplates
         return (subject, html, text);
     }
 
-    public static (string Subject, string Html, string Text) Welcome(string appBaseUrl, string fullName)
+    public static (string Subject, string Html, string Text) Welcome(string fullName)
     {
         var subject = "Welcome to UComplain";
         var greeting = WebUtility.HtmlEncode(fullName);
-        var html = Wrap(appBaseUrl, "Welcome to UComplain", $"""
+        var html = Wrap("Welcome to UComplain", $"""
             <p style="margin:0 0 16px;">Hi {greeting},</p>
             <p style="margin:0;">Your email is verified and your UComplain account is ready. You can now report
             community incidents, attach photos or other media, and track their status from the
@@ -85,9 +105,11 @@ public static class EmailTemplates
         </table>
         """;
 
-    private static string Wrap(string appBaseUrl, string preheader, string bodyHtml)
+    private static string Wrap(string preheader, string bodyHtml)
     {
-        var logoUrl = WebUtility.HtmlEncode($"{appBaseUrl.TrimEnd('/')}{LogoPath}");
+        var logoCell = LogoDataUri.Value is { } logoDataUri
+            ? $"""<img src="{logoDataUri}" width="28" height="28" alt="UComplain" style="display:block;margin:4px;border:0;outline:none;" />"""
+            : "";
 
         return $"""
             <!doctype html>
@@ -110,7 +132,7 @@ public static class EmailTemplates
                                         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                                             <tr>
                                                 <td style="background-color:#ffffff;border-radius:8px;width:36px;height:36px;text-align:center;vertical-align:middle;">
-                                                    <img src="{logoUrl}" width="28" height="28" alt="UComplain" style="display:block;margin:4px;border:0;outline:none;" />
+                                                    {logoCell}
                                                 </td>
                                                 <td style="padding-left:12px;color:#ffffff;font-size:17px;font-weight:bold;font-family:Arial,Helvetica,sans-serif;">
                                                     UComplain

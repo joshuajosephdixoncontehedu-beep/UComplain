@@ -8,6 +8,7 @@ import { BackButton } from '@/components/ui/back-button';
 import { InfoBanner } from '@/components/ui/info-banner';
 import { OtpInput } from '@/components/ui/otp-input';
 import { useReporterAuth } from '@/components/auth/reporter-auth-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 import { ApiError } from '@/lib/api/client';
 
 const RESEND_SECONDS = 45; // matches Otp__ResendCooldownSeconds default (mobile-api-contract.md)
@@ -21,6 +22,7 @@ const RESEND_SECONDS = 45; // matches Otp__ResendCooldownSeconds default (mobile
 export default function VerifyEmail() {
   const { email } = useLocalSearchParams<{ email?: string }>();
   const { verifyEmailOtp, resendEmailOtp } = useReporterAuth();
+  const topOffset = useScreenTopOffset();
   const [code, setCode] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [submitting, setSubmitting] = useState(false);
@@ -64,7 +66,7 @@ export default function VerifyEmail() {
 
   return (
     <ScrollView className="flex-1 bg-canvas" contentContainerClassName="px-5 pb-10">
-      <View className="mt-[72px]">
+      <View style={{ marginTop: topOffset }}>
         <BackButton />
       </View>
 

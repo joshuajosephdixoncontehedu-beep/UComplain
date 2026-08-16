@@ -7,6 +7,7 @@ import { BackButton } from '@/components/ui/back-button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { TimelineStep } from '@/components/report/timeline-step';
 import { useReporterAuth } from '@/components/auth/reporter-auth-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 import { CaseStatus, ClarificationRequest, MobileReportDetail, reportsApi } from '@/lib/api/reports';
 import { caseStatusLabel, projectReportStatus } from '@/lib/report-status-projection';
 import { useCategories } from '@/lib/use-categories';
@@ -62,6 +63,7 @@ export default function ReportDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { authorizedRequest } = useReporterAuth();
   const { iconByName } = useCategories();
+  const topOffset = useScreenTopOffset();
 
   const [report, setReport] = useState<MobileReportDetail | null>(null);
   const [clarifications, setClarifications] = useState<ClarificationRequest[] | null>(null);
@@ -101,7 +103,7 @@ export default function ReportDetail() {
 
   return (
     <ScrollView className="flex-1 bg-canvas" contentContainerClassName="pb-10">
-      <View className="mt-[64px] flex-row items-center justify-between px-5">
+      <View className="flex-row items-center justify-between px-5" style={{ marginTop: topOffset }}>
         <View className="flex-row items-center gap-5">
           <BackButton />
           <Text className="text-body-lg font-semibold text-ink">{report.caseReference}</Text>

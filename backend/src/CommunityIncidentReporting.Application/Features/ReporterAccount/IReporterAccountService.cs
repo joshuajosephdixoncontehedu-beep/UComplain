@@ -1,3 +1,4 @@
+using CommunityIncidentReporting.Application.Common.Models;
 using CommunityIncidentReporting.Application.Features.MobileAuth.Dtos;
 using CommunityIncidentReporting.Application.Features.ReporterAccount.Dtos;
 
@@ -26,6 +27,15 @@ public interface IReporterAccountService
 
     Task<ReporterProfileDto> UpdateProfileAsync(
         Guid reporterId, UpdateMyProfileRequest request, CancellationToken cancellationToken);
+
+    /// <summary>Returns a fresh signed URL for the caller's photo, or a null PhotoUrl if none is set.</summary>
+    Task<ProfilePhotoDto> GetProfilePhotoAsync(Guid reporterId, CancellationToken cancellationToken);
+
+    /// <summary>Replaces any existing photo — the old storage object is deleted (best-effort).</summary>
+    Task<ProfilePhotoDto> UploadProfilePhotoAsync(Guid reporterId, MediaUploadFile file, CancellationToken cancellationToken);
+
+    /// <summary>No-op if the caller has no photo set.</summary>
+    Task RemoveProfilePhotoAsync(Guid reporterId, CancellationToken cancellationToken);
 
     /// <summary>
     /// Idempotent-ish: returns the caller's already-Pending/Processing request instead of

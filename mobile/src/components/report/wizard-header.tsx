@@ -2,11 +2,13 @@ import { router } from 'expo-router';
 import { Text, View } from 'react-native';
 
 import { BackButton } from '@/components/ui/back-button';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 
 /** Figma "08–11 New report · …" headers: back + title + step label + progress bar. */
 export function WizardHeader({ step, onBack }: { step: 1 | 2 | 3 | 4; onBack?: () => void }) {
+  const topOffset = useScreenTopOffset();
   return (
-    <View className="mt-[68px] gap-[18px]">
+    <View className="gap-[18px]" style={{ marginTop: topOffset }}>
       <View className="flex-row items-center justify-between">
         <BackButton onPress={onBack ?? (() => router.back())} />
         <Text className="text-body-lg font-semibold text-ink">New report</Text>

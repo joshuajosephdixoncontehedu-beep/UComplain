@@ -2,6 +2,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, 
 
 import { ApiError, apiRequest } from '@/lib/api/client';
 import { authApi, AuthTokenResponse, ConsentType, ReporterProfile } from '@/lib/api/auth';
+import type { ProfilePhoto } from '@/lib/api/me';
 import { StoredSession, tokenStorage } from '@/lib/api/token-storage';
 
 type AuthStatus = 'loading' | 'authenticated' | 'unauthenticated';
@@ -16,6 +17,10 @@ export type AuthorizedRequestOptions = {
 type ReporterAuthContextValue = {
   status: AuthStatus;
   reporter: ReporterProfile | null;
+  /** Signed URL for the reporter's profile photo, or null if none is set — see meApi.getPhoto. */
+  photoUrl: string | null;
+  /** Update the locally-cached photo URL after a successful upload/remove via meApi. */
+  setPhotoUrl: (url: string | null) => void;
   register: typeof authApi.register;
   verifyEmailOtp: (input: { email: string; otpCode: string }) => Promise<void>;
   resendEmailOtp: (email: string) => Promise<void>;
@@ -45,6 +50,7 @@ async function persist(auth: AuthTokenResponse) {
 export function ReporterAuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('loading');
   const [session, setSession] = useState<StoredSession | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
 
   useEffect(() => {
     tokenStorage.read().then((stored) => {
@@ -77,6 +83,7 @@ export function ReporterAuthProvider({ children }: { children: ReactNode }) {
     await tokenStorage.clear();
     setSession(null);
     setStatus('unauthenticated');
+    setPhotoUrl(null);
   }, [session]);
 
   const recordConsent = useCallback(
@@ -123,10 +130,21 @@ export function ReporterAuthProvider({ children }: { children: ReactNode }) {
     [session],
   );
 
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    authorizedRequest<ProfilePhoto>('api/mobile/me/photo')
+      .then((p) => setPhotoUrl(p.photoUrl))
+      .catch(() => undefined);
+    // Fetch once per sign-in, not on every authorizedRequest identity change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
   const value = useMemo<ReporterAuthContextValue>(
     () => ({
       status,
       reporter: session?.reporter ?? null,
+      photoUrl,
+      setPhotoUrl,
       register,
       verifyEmailOtp,
       resendEmailOtp,
@@ -136,7 +154,7 @@ export function ReporterAuthProvider({ children }: { children: ReactNode }) {
       setReporter,
       authorizedRequest,
     }),
-    [status, session, register, verifyEmailOtp, resendEmailOtp, login, logout, recordConsent, setReporter, authorizedRequest],
+    [status, session, photoUrl, register, verifyEmailOtp, resendEmailOtp, login, logout, recordConsent, setReporter, authorizedRequest],
   );
 
   return <ReporterAuthContext.Provider value={value}>{children}</ReporterAuthContext.Provider>;

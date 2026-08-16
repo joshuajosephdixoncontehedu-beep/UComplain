@@ -6,6 +6,7 @@ import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
 import { AppButton } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useReporterAuth } from '@/components/auth/reporter-auth-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 import { ConsentType } from '@/lib/api/auth';
 
 type PermissionKey = 'location' | 'camera' | 'notifications';
@@ -37,6 +38,7 @@ const PERMISSIONS: { key: PermissionKey; consentType: ConsentType; icon: keyof t
 /** Figma "06 Consent & permissions" (node 7:130). */
 export default function Consent() {
   const { recordConsent } = useReporterAuth();
+  const topOffset = useScreenTopOffset(48);
   const [granted, setGranted] = useState<Record<PermissionKey, boolean>>({
     location: true,
     camera: true,
@@ -64,7 +66,7 @@ export default function Consent() {
 
   return (
     <ScrollView className="flex-1 bg-canvas" contentContainerClassName="px-5 pb-10">
-      <View className="mt-[96px] gap-2">
+      <View className="gap-2" style={{ marginTop: topOffset }}>
         <Text className="text-display text-ink">Before you report</Text>
         <Text className="text-body text-secondary">
           U Complain needs a few permissions to make your reports useful to responders.

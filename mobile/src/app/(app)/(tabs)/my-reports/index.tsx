@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-nati
 
 import { ReportCard } from '@/components/ui/report-card';
 import { useReporterAuth } from '@/components/auth/reporter-auth-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 import { MobileReportListItem, ReportCounts, ReportListBucket, reportsApi } from '@/lib/api/reports';
 import { useCategories } from '@/lib/use-categories';
 
@@ -30,6 +31,7 @@ function relativeTime(iso: string): string {
 export default function MyReports() {
   const { authorizedRequest } = useReporterAuth();
   const { iconByName } = useCategories();
+  const topOffset = useScreenTopOffset();
   const [filter, setFilter] = useState<FilterKey>('all');
   const [result, setResult] = useState<{ filter: FilterKey; reports: MobileReportListItem[] | null; error: boolean }>({
     filter: 'all',
@@ -68,14 +70,18 @@ export default function MyReports() {
 
   return (
     <View className="flex-1 bg-canvas">
-      <View className="mt-[68px] flex-row items-center justify-between px-5">
+      <View className="flex-row items-center justify-between px-5" style={{ marginTop: topOffset }}>
         <Text className="text-h1 text-ink">My reports</Text>
         <Pressable hitSlop={8} className="h-[42px] w-[42px] items-center justify-center rounded-full bg-surface-muted">
           <Ionicons name="options-outline" size={19} color="#0F172A" />
         </Pressable>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-[26px]" contentContainerClassName="gap-2 px-5">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="mt-[26px]"
+        contentContainerClassName="items-center gap-2 px-5">
         {FILTERS.map((f) => {
           const active = f.key === filter;
           const count = countFor(f.key);
@@ -83,7 +89,7 @@ export default function MyReports() {
             <Pressable
               key={f.key}
               onPress={() => setFilter(f.key)}
-              className={`flex-row items-center gap-2 rounded-pill px-3.5 py-2 ${active ? 'bg-brand' : 'bg-surface-muted'}`}>
+              className={`flex-row items-center gap-2 self-center rounded-pill px-3.5 py-2 ${active ? 'bg-brand' : 'bg-surface-muted'}`}>
               <Text className={`text-label ${active ? 'text-surface' : 'text-secondary'}`}>{f.label}</Text>
               {count !== undefined ? (
                 <View className={`h-4 min-w-[19px] items-center justify-center rounded-pill px-1 ${active ? 'bg-white/25' : 'bg-surface'}`}>

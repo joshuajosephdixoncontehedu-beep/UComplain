@@ -27,6 +27,7 @@ public class ReporterConfiguration : IEntityTypeConfiguration<Reporter>
         builder.Property(x => x.PhoneNumber).HasMaxLength(32);
         builder.Property(x => x.PasswordHash).HasMaxLength(200);
         builder.Property(x => x.RestrictionReason).HasMaxLength(500);
+        builder.Property(x => x.ProfilePhotoStoragePath).HasMaxLength(500);
 
         // Explicit default so the migration backfills existing WhatsApp-only rows to the
         // same value the entity's C# property initializer already gives every new row —

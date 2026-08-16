@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/avatar';
 import { MenuRow } from '@/components/ui/menu-row';
 import { useReporterAuth } from '@/components/auth/reporter-auth-context';
+import { useScreenTopOffset } from '@/hooks/use-screen-top-offset';
 import { meApi, ReporterStats } from '@/lib/api/me';
 
 function memberSinceLabel(iso: string) {
@@ -14,9 +16,10 @@ function memberSinceLabel(iso: string) {
 
 /** Figma "19 Profile" (node 18:2). */
 export default function Profile() {
-  const { reporter, authorizedRequest, logout } = useReporterAuth();
+  const { reporter, authorizedRequest, logout, photoUrl, setPhotoUrl } = useReporterAuth();
   const reporterName = reporter?.fullName ?? '';
   const email = reporter?.email ?? '';
+  const topOffset = useScreenTopOffset();
 
   const [stats, setStats] = useState<ReporterStats | null>(null);
   useEffect(() => {
@@ -28,12 +31,67 @@ export default function Profile() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [photoBusy, setPhotoBusy] = useState(false);
+
+  const pickPhoto = async (source: 'camera' | 'gallery') => {
+    const permission =
+      source === 'camera' ? await ImagePicker.requestCameraPermissionsAsync() : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) return;
+
+    const result =
+      source === 'camera'
+        ? await ImagePicker.launchCameraAsync({ mediaTypes: ['images'], quality: 0.7, allowsEditing: true, aspect: [1, 1] })
+        : await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.7, allowsEditing: true, aspect: [1, 1] });
+    if (result.canceled) return;
+
+    const asset = result.assets[0];
+    setPhotoBusy(true);
+    try {
+      const form = new FormData();
+      form.append('file', { uri: asset.uri, name: asset.fileName ?? `photo-${Date.now()}.jpg`, type: asset.mimeType ?? 'image/jpeg' } as unknown as Blob);
+      const updated = await meApi.uploadPhoto(authorizedRequest, form);
+      setPhotoUrl(updated.photoUrl);
+    } catch {
+      Alert.alert('Could not update your photo', 'Please try again.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const removePhoto = async () => {
+    setPhotoBusy(true);
+    try {
+      await meApi.removePhoto(authorizedRequest);
+      setPhotoUrl(null);
+    } catch {
+      Alert.alert('Could not remove your photo', 'Please try again.');
+    } finally {
+      setPhotoBusy(false);
+    }
+  };
+
+  const onAvatarPress = () => {
+    Alert.alert('Profile photo', undefined, [
+      { text: 'Take photo', onPress: () => pickPhoto('camera') },
+      { text: 'Choose from library', onPress: () => pickPhoto('gallery') },
+      ...(photoUrl ? [{ text: 'Remove photo', style: 'destructive' as const, onPress: removePhoto }] : []),
+      { text: 'Cancel', style: 'cancel' as const },
+    ]);
+  };
+
   return (
     <ScrollView className="flex-1 bg-canvas">
-      <Text className="mt-[68px] px-5 text-h1 text-ink">Profile</Text>
+      <Text className="px-5 text-h1 text-ink" style={{ marginTop: topOffset }}>
+        Profile
+      </Text>
 
       <View className="mx-5 mt-10 flex-row items-center gap-4 rounded-card border border-border bg-surface p-4">
-        <Avatar name={reporterName} size={56} />
+        <Pressable onPress={onAvatarPress} disabled={photoBusy} hitSlop={4}>
+          <Avatar name={reporterName} size={56} photoUrl={photoUrl} />
+          <View className="absolute -bottom-1 -right-1 h-6 w-6 items-center justify-center rounded-full border-2 border-surface bg-brand">
+            {photoBusy ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Ionicons name="camera" size={12} color="#FFFFFF" />}
+          </View>
+        </Pressable>
         <View className="flex-1">
           <Text className="text-body-lg font-semibold text-ink">{reporterName}</Text>
           <Text className="mt-0.5 text-body-sm text-muted">{email}</Text>
@@ -69,9 +127,19 @@ export default function Profile() {
       </View>
 
       <View className="mx-5 mt-6 rounded-card border border-border bg-surface">
-        <MenuRow icon="person-outline" title="Personal details" subtitle="Name, email and contact" />
+        <MenuRow
+          icon="person-outline"
+          title="Personal details"
+          subtitle="Name, email and contact"
+          onPress={() => router.push('/(app)/(tabs)/profile/personal-details')}
+        />
         <View className="h-px bg-border" />
-        <MenuRow icon="notifications-outline" title="Notification settings" subtitle="Alerts for status changes" />
+        <MenuRow
+          icon="notifications-outline"
+          title="Notification settings"
+          subtitle="Alerts for status changes"
+          onPress={() => router.push('/(app)/(tabs)/profile/notification-settings')}
+        />
         <View className="h-px bg-border" />
         <MenuRow icon="lock-closed-outline" title="Privacy & data" subtitle="Consent, retention and deletion" onPress={() => router.push('/(app)/(tabs)/profile/privacy')} />
       </View>

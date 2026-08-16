@@ -1,5 +1,7 @@
+using System.Text.RegularExpressions;
 using CommunityIncidentReporting.Application.Common.Exceptions;
 using CommunityIncidentReporting.Application.Common.Interfaces;
+using CommunityIncidentReporting.Application.Common.Models;
 using CommunityIncidentReporting.Application.Features.MobileAuth.Dtos;
 using CommunityIncidentReporting.Application.Features.MobileReports;
 using CommunityIncidentReporting.Application.Features.PublicMap;
@@ -9,15 +11,20 @@ using CommunityIncidentReporting.Domain.Entities;
 using CommunityIncidentReporting.Domain.Enums;
 using CommunityIncidentReporting.Infrastructure.Compliance;
 using CommunityIncidentReporting.Infrastructure.Persistence;
+using CommunityIncidentReporting.Infrastructure.Storage;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace CommunityIncidentReporting.Infrastructure.Services;
 
-public class ReporterAccountService(
+public partial class ReporterAccountService(
     AppDbContext db, IAuditLogger auditLogger, IMobileReportService mobileReportService,
-    ISupabaseStorageService storageService, IOptions<ComplianceOptions> options) : IReporterAccountService
+    ISupabaseStorageService storageService, IOptions<ComplianceOptions> options,
+    IOptions<MediaUploadOptions> mediaUploadOptions) : IReporterAccountService
 {
+    private const long MaxProfilePhotoSizeBytes = 5 * 1024 * 1024;
+
+
     public async Task<ReporterPrivacySettingDto> GetPrivacyAsync(Guid reporterId, CancellationToken cancellationToken) =>
         ToDto(await GetOrCreatePrivacyAsync(reporterId, cancellationToken));
 
@@ -84,6 +91,100 @@ public class ReporterAccountService(
             reporter.EmailVerifiedAt is not null, reporter.IsActive, reporter.IsRestricted, reporter.LastLoginAt,
             reporter.CreatedAt, reporter.LanguagePreference);
     }
+
+    public async Task<ProfilePhotoDto> GetProfilePhotoAsync(Guid reporterId, CancellationToken cancellationToken)
+    {
+        var reporter = await db.Reporters.FindAsync([reporterId], cancellationToken)
+            ?? throw new NotFoundException(nameof(Reporter), reporterId);
+
+        return reporter.ProfilePhotoStoragePath is null
+            ? new ProfilePhotoDto(null, null)
+            : await ToPhotoDtoAsync(reporter.ProfilePhotoStoragePath, cancellationToken);
+    }
+
+    public async Task<ProfilePhotoDto> UploadProfilePhotoAsync(
+        Guid reporterId, MediaUploadFile file, CancellationToken cancellationToken)
+    {
+        var reporter = await db.Reporters.FindAsync([reporterId], cancellationToken)
+            ?? throw new NotFoundException(nameof(Reporter), reporterId);
+
+        if (!MediaTypeDetector.TryGetMediaType(file.ContentType, out var mediaType) || mediaType != MediaType.Image)
+        {
+            throw new BusinessRuleException($"File type '{file.ContentType}' is not allowed for a profile photo.");
+        }
+
+        var header = new byte[16];
+        var bytesRead = await file.Content.ReadAsync(header.AsMemory(0, 16), cancellationToken);
+        file.Content.Position = 0;
+        if (!MediaTypeDetector.MatchesDeclaredType(header.AsSpan(0, bytesRead), file.ContentType))
+        {
+            throw new BusinessRuleException("The uploaded file does not appear to be a valid image.");
+        }
+
+        if (file.Length > MaxProfilePhotoSizeBytes)
+        {
+            throw new BusinessRuleException($"Profile photos must be under {MaxProfilePhotoSizeBytes / (1024 * 1024)}MB.");
+        }
+
+        var storagePath = $"reporter-profile-photos/{reporterId}/{Guid.NewGuid()}_{SanitizeFileName(file.FileName)}";
+        await storageService.UploadAsync(storagePath, file.Content, file.ContentType, cancellationToken);
+
+        var previousPath = reporter.ProfilePhotoStoragePath;
+        reporter.ProfilePhotoStoragePath = storagePath;
+        reporter.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await auditLogger.LogAsync(
+            adminUserId: null, "ReporterProfilePhotoUpdated", nameof(Reporter), reporter.Id.ToString(),
+            previousValue: null, newValue: new { storagePath }, ipAddress: null, userAgent: null, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+
+        // Old object is orphaned-cleanup, same best-effort convention as MediaAttachmentService.
+        if (previousPath is not null)
+        {
+            await storageService.DeleteAsync(previousPath, cancellationToken);
+        }
+
+        return await ToPhotoDtoAsync(storagePath, cancellationToken);
+    }
+
+    public async Task RemoveProfilePhotoAsync(Guid reporterId, CancellationToken cancellationToken)
+    {
+        var reporter = await db.Reporters.FindAsync([reporterId], cancellationToken)
+            ?? throw new NotFoundException(nameof(Reporter), reporterId);
+
+        if (reporter.ProfilePhotoStoragePath is null)
+        {
+            return;
+        }
+
+        var path = reporter.ProfilePhotoStoragePath;
+        reporter.ProfilePhotoStoragePath = null;
+        reporter.UpdatedAt = DateTimeOffset.UtcNow;
+
+        await auditLogger.LogAsync(
+            adminUserId: null, "ReporterProfilePhotoRemoved", nameof(Reporter), reporter.Id.ToString(),
+            previousValue: null, newValue: null, ipAddress: null, userAgent: null, cancellationToken);
+        await db.SaveChangesAsync(cancellationToken);
+
+        await storageService.DeleteAsync(path, cancellationToken);
+    }
+
+    private async Task<ProfilePhotoDto> ToPhotoDtoAsync(string storagePath, CancellationToken cancellationToken)
+    {
+        var expirySeconds = mediaUploadOptions.Value.SignedUrlExpirySeconds;
+        var url = await storageService.CreateSignedUrlAsync(storagePath, expirySeconds, cancellationToken);
+        return new ProfilePhotoDto(url, DateTimeOffset.UtcNow.AddSeconds(expirySeconds));
+    }
+
+    private static string SanitizeFileName(string fileName)
+    {
+        var name = System.IO.Path.GetFileName(fileName);
+        name = InvalidFileNameCharsRegex().Replace(name, "_");
+        return string.IsNullOrWhiteSpace(name) ? "file" : name;
+    }
+
+    [GeneratedRegex(@"[^a-zA-Z0-9_.\-]")]
+    private static partial Regex InvalidFileNameCharsRegex();
 
     public async Task<DataExportRequestDto> RequestDataExportAsync(Guid reporterId, CancellationToken cancellationToken)
     {
