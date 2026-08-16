@@ -7,6 +7,7 @@ import type {
   GetReportsQuery,
   IncidentReportDetail,
   IncidentReportListItem,
+  SignedUrlResponse,
   UpdateReportRequest,
 } from "@/types/reports";
 
@@ -32,4 +33,9 @@ export function addReportNote(id: string, request: AddNoteRequest) {
 
 export function changeReportStatus(id: string, request: ChangeStatusRequest) {
   return apiPost<IncidentReportDetail>(`/api/admin/reports/${id}/status`, request);
+}
+
+/** Signed URL is short-lived (5 min by default) — always fetch fresh, never cache/reuse. */
+export function getReportAttachmentUrl(reportId: string, attachmentId: string) {
+  return apiGet<SignedUrlResponse>(`/api/admin/reports/${reportId}/attachments/${attachmentId}/access-url`);
 }

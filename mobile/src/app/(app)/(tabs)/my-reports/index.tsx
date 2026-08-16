@@ -80,7 +80,7 @@ export default function MyReports() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        className="mt-[26px]"
+        style={{ marginTop: 26 }}
         contentContainerClassName="items-center gap-2 px-5">
         {FILTERS.map((f) => {
           const active = f.key === filter;
@@ -110,7 +110,7 @@ export default function MyReports() {
       ) : reports.length === 0 ? (
         <Text className="mt-9 px-5 text-body text-muted">No reports in this filter yet.</Text>
       ) : (
-        <ScrollView className="mt-[26px] flex-1 px-5" contentContainerClassName="gap-3 pb-32">
+        <ScrollView className="flex-1 px-5" style={{ marginTop: 26 }} contentContainerClassName="gap-3 pb-32">
           {reports.map((r) => (
             <ReportCard
               key={r.id}

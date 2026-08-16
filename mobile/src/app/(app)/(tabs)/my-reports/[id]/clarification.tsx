@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/button';
 import { BackButton } from '@/components/ui/back-button';
@@ -79,7 +79,8 @@ export default function NeedsClarification() {
   }
 
   return (
-    <ScrollView className="flex-1 bg-canvas" contentContainerClassName="px-5 pb-10">
+    <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <ScrollView className="flex-1 bg-canvas" contentContainerClassName="px-5 pb-10" keyboardShouldPersistTaps="handled">
       <View className="flex-row items-center gap-5" style={{ marginTop: topOffset }}>
         <BackButton />
         <Text className="text-body-lg font-semibold text-ink">{clarification ? 'Needs clarification' : 'Add information'}</Text>
@@ -143,5 +144,6 @@ export default function NeedsClarification() {
         <AppButton title={clarification ? 'Send reply' : 'Add information'} disabled={!reply.trim() || submitting} onPress={onSend} />
       </View>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

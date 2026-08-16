@@ -46,6 +46,8 @@ type ReportDraftContextValue = {
   draftId: string | null;
   syncing: boolean;
   syncError: string | null;
+  /** Local file URI of the just-recorded voice note, for in-app playback — never sent to the server. */
+  voiceNoteLocalUri?: string;
   update: (patch: Partial<ReportDraft>) => void;
   /**
    * Creates the server draft if needed, then PATCHes it (full-replace) with
@@ -78,11 +80,13 @@ export function ReportDraftProvider({ children }: { children: ReactNode }) {
   const [draftId, setDraftId] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [voiceNoteLocalUri, setVoiceNoteLocalUri] = useState<string | undefined>();
 
   const update = useCallback((patch: Partial<ReportDraft>) => setDraft((d) => ({ ...d, ...patch })), []);
   const reset = useCallback(() => {
     setDraft(EMPTY_DRAFT);
     setDraftId(null);
+    setVoiceNoteLocalUri(undefined);
   }, []);
 
   const sync = useCallback(
@@ -152,7 +156,10 @@ export function ReportDraftProvider({ children }: { children: ReactNode }) {
       const form = new FormData();
       form.append('files', { uri: file.uri, name: file.name, type: file.mimeType } as unknown as Blob);
       const [attachment] = await reportsApi.uploadDraftAttachments(authorizedRequest, id, form);
-      if (attachment) update({ voiceNote: attachment });
+      if (attachment) {
+        update({ voiceNote: attachment });
+        setVoiceNoteLocalUri(file.uri);
+      }
     },
     [ensureDraftId, authorizedRequest, update],
   );
@@ -161,6 +168,7 @@ export function ReportDraftProvider({ children }: { children: ReactNode }) {
     if (!draftId || !draft.voiceNote) return;
     await reportsApi.deleteDraftAttachment(authorizedRequest, draftId, draft.voiceNote.id);
     update({ voiceNote: undefined });
+    setVoiceNoteLocalUri(undefined);
   }, [draftId, draft.voiceNote, authorizedRequest, update]);
 
   const submit = useCallback(() => {
@@ -169,8 +177,36 @@ export function ReportDraftProvider({ children }: { children: ReactNode }) {
   }, [draftId, authorizedRequest]);
 
   const value = useMemo(
-    () => ({ draft, draftId, syncing, syncError, update, sync, uploadPhoto, removePhoto, uploadVoiceNote, removeVoiceNote, submit, reset }),
-    [draft, draftId, syncing, syncError, update, sync, uploadPhoto, removePhoto, uploadVoiceNote, removeVoiceNote, submit, reset],
+    () => ({
+      draft,
+      draftId,
+      syncing,
+      syncError,
+      voiceNoteLocalUri,
+      update,
+      sync,
+      uploadPhoto,
+      removePhoto,
+      uploadVoiceNote,
+      removeVoiceNote,
+      submit,
+      reset,
+    }),
+    [
+      draft,
+      draftId,
+      syncing,
+      syncError,
+      voiceNoteLocalUri,
+      update,
+      sync,
+      uploadPhoto,
+      removePhoto,
+      uploadVoiceNote,
+      removeVoiceNote,
+      submit,
+      reset,
+    ],
   );
 
   return <ReportDraftContext.Provider value={value}>{children}</ReportDraftContext.Provider>;

@@ -19,7 +19,7 @@ export default function OnboardingReport() {
         </Pressable>
       </View>
 
-      <View className="mt-[50px] h-[300px] items-center justify-center">
+      <View className="h-[300px] items-center justify-center" style={{ marginTop: 50 }}>
         <ReportIllustration />
       </View>
 

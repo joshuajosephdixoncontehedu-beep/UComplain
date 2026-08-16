@@ -46,7 +46,7 @@ export default function SignIn() {
           <BackButton />
         </View>
 
-        <View className="mt-[52px] gap-2">
+        <View className="gap-2" style={{ marginTop: 52 }}>
           <Text className="text-display text-ink">Welcome back</Text>
           <Text className="text-body text-secondary">Sign in to submit and track your reports.</Text>
         </View>

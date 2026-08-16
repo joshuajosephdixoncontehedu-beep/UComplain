@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ChartCard } from "@/components/dashboard/ChartCard";
 import { RecentActivityTimeline } from "@/components/dashboard/RecentActivityTimeline";
+import { AttachmentsList } from "@/components/reports/detail/AttachmentsList";
 import { ReportOverviewCard } from "@/components/reports/detail/ReportOverviewCard";
 import { ReporterCard } from "@/components/reports/detail/ReporterCard";
 import { AssignmentCard } from "@/components/reports/detail/AssignmentCard";
@@ -159,6 +160,10 @@ export default function ReportDetailPage({ params }: { params: Promise<{ id: str
             <div className="flex flex-col gap-4 lg:col-span-2">
               <ChartCard title="Report details">
                 <ReportOverviewCard report={report} />
+              </ChartCard>
+
+              <ChartCard title="Attachments" description="Photos, audio, and other files the reporter attached">
+                <AttachmentsList reportId={report.id} items={report.mediaAttachments} />
               </ChartCard>
 
               <ChartCard title="Verification history">

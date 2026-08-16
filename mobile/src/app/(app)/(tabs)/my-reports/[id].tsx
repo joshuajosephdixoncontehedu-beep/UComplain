@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { BackButton } from '@/components/ui/back-button';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -102,7 +102,8 @@ export default function ReportDetail() {
   const pendingClarification = clarifications?.find((c) => !c.resolvedAt && !c.autoClosedAt);
 
   return (
-    <ScrollView className="flex-1 bg-canvas" contentContainerClassName="pb-10">
+    <KeyboardAvoidingView className="flex-1" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+    <ScrollView className="flex-1 bg-canvas" contentContainerClassName="pb-10" keyboardShouldPersistTaps="handled">
       <View className="flex-row items-center justify-between px-5" style={{ marginTop: topOffset }}>
         <View className="flex-row items-center gap-5">
           <BackButton />
@@ -110,7 +111,7 @@ export default function ReportDetail() {
         </View>
       </View>
 
-      <View className="mt-[60px] gap-3 px-5">
+      <View className="gap-3 px-5" style={{ marginTop: 60 }}>
         <View className="flex-row items-center gap-2">
           <StatusBadge variant={projection.badgeLabel} />
           <StatusBadge variant={report.priority} />
@@ -220,5 +221,6 @@ export default function ReportDetail() {
         </View>
       )}
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }

@@ -58,6 +58,14 @@ export const VerificationDecisionResult = {
 export type VerificationDecisionResult =
   (typeof VerificationDecisionResult)[keyof typeof VerificationDecisionResult];
 
+export const MediaType = {
+  Image: "Image",
+  Video: "Video",
+  Audio: "Audio",
+  Document: "Document",
+} as const;
+export type MediaType = (typeof MediaType)[keyof typeof MediaType];
+
 export const VerificationDecisionAction = {
   Approve: "Approve",
   Reject: "Reject",

@@ -1,4 +1,4 @@
-import type { CaseStatus, IncidentPriority, SourceChannel, VerificationDecisionResult, VerificationMethod, VerificationStatus } from "./enums";
+import type { CaseStatus, IncidentPriority, MediaType, SourceChannel, VerificationDecisionResult, VerificationMethod, VerificationStatus } from "./enums";
 
 export interface IncidentReportListItem {
   id: string;
@@ -63,6 +63,21 @@ export interface AuditLogEntryItem {
   createdAt: string;
 }
 
+export interface MediaAttachmentItem {
+  id: string;
+  fileName: string;
+  mediaType: MediaType;
+  mimeType: string;
+  fileSizeBytes: number;
+  sortOrder: number;
+  uploadedAt: string;
+}
+
+export interface SignedUrlResponse {
+  url: string;
+  expiresAt: string;
+}
+
 export interface IncidentReportDetail {
   id: string;
   caseReference: string;
@@ -92,6 +107,7 @@ export interface IncidentReportDetail {
   notes: InternalNoteItem[];
   assignments: ReportAssignmentItem[];
   auditTrail: AuditLogEntryItem[];
+  mediaAttachments: MediaAttachmentItem[];
 }
 
 export interface GetReportsQuery {

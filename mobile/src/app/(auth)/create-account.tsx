@@ -53,7 +53,7 @@ export default function CreateAccount() {
           <BackButton />
         </View>
 
-        <View className="mt-[52px] gap-2">
+        <View className="gap-2" style={{ marginTop: 52 }}>
           <Text className="text-display text-ink">Create your account</Text>
           <Text className="text-body text-secondary">
             You need an account so we can verify reports and send you updates.

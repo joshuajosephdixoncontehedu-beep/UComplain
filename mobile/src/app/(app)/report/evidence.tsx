@@ -4,6 +4,8 @@ import {
   RecordingPresets,
   requestRecordingPermissionsAsync,
   setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
   useAudioRecorder,
   useAudioRecorderState,
 } from 'expo-audio';
@@ -19,6 +21,13 @@ import { WizardHeader } from '@/components/report/wizard-header';
 
 const MAX_PHOTOS = 5;
 
+function formatDuration(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const mm = Math.floor(total / 60);
+  const ss = total % 60;
+  return `${mm}:${ss.toString().padStart(2, '0')}`;
+}
+
 /**
  * Figma "11 New report · Evidence" (node 11:80) — wizard step 4 of 4, optional.
  * Photos and the voice note are picked/recorded with the device's real camera,
@@ -26,7 +35,7 @@ const MAX_PHOTOS = 5;
  * endpoints (POST /reports/drafts/{id}/attachments) — no placeholders.
  */
 export default function ReportEvidence() {
-  const { draft, uploadPhoto, removePhoto, uploadVoiceNote, removeVoiceNote } = useReportDraft();
+  const { draft, uploadPhoto, removePhoto, uploadVoiceNote, removeVoiceNote, voiceNoteLocalUri } = useReportDraft();
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [removingPhotoId, setRemovingPhotoId] = useState<string | null>(null);
   const [uploadingVoiceNote, setUploadingVoiceNote] = useState(false);
@@ -34,6 +43,23 @@ export default function ReportEvidence() {
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const recorderState = useAudioRecorderState(recorder, 250);
+
+  // Real playback of the just-recorded voice note — recreates automatically when
+  // voiceNoteLocalUri changes (record a new one, or clear it after removing).
+  const player = useAudioPlayer(voiceNoteLocalUri ? { uri: voiceNoteLocalUri } : null);
+  const playerStatus = useAudioPlayerStatus(player);
+
+  const togglePlayback = async () => {
+    if (playerStatus.playing) {
+      player.pause();
+      return;
+    }
+    // Voice notes were recorded with allowsRecording — re-enable normal playback
+    // routing (speaker, respects silent switch off) before playing them back.
+    await setAudioModeAsync({ allowsRecording: false, playsInSilentMode: true });
+    if (playerStatus.didJustFinish) await player.seekTo(0);
+    player.play();
+  };
 
   const pickPhoto = async (source: 'camera' | 'gallery') => {
     setError(null);
@@ -93,7 +119,9 @@ export default function ReportEvidence() {
     if (!recorder.uri) return;
     setUploadingVoiceNote(true);
     try {
-      await uploadVoiceNote({ uri: recorder.uri, name: `voice-note-${Date.now()}.m4a`, mimeType: 'audio/m4a' });
+      // 'audio/mp4' (not 'audio/m4a') — matches MediaTypeDetector's allowlist on the
+      // backend; M4A is an MPEG-4/ISO-BMFF container, same magic bytes either way.
+      await uploadVoiceNote({ uri: recorder.uri, name: `voice-note-${Date.now()}.m4a`, mimeType: 'audio/mp4' });
     } catch {
       setError('Could not upload the voice note. Please try again.');
     } finally {
@@ -161,12 +189,23 @@ export default function ReportEvidence() {
 
       {draft.voiceNote ? (
         <View className="mt-4 flex-row items-center gap-3 rounded-input border border-border bg-surface p-3.5">
-          <View className="h-[38px] w-[38px] items-center justify-center rounded-full bg-brand-tint">
-            <Ionicons name="mic-outline" size={16} color="#1D4ED8" />
-          </View>
+          <Pressable
+            onPress={togglePlayback}
+            disabled={!voiceNoteLocalUri}
+            hitSlop={4}
+            className="h-[38px] w-[38px] items-center justify-center rounded-full bg-brand-tint disabled:opacity-50">
+            <Ionicons name={playerStatus.playing ? 'pause' : 'play'} size={16} color="#1D4ED8" />
+          </Pressable>
           <View className="flex-1 gap-1.5">
-            <Text className="text-body font-semibold text-ink">Voice note</Text>
-            <Waveform />
+            <View className="flex-row items-center justify-between">
+              <Text className="text-body font-semibold text-ink">Voice note</Text>
+              {playerStatus.duration > 0 ? (
+                <Text className="text-caption text-muted">
+                  {formatDuration(playerStatus.currentTime)} / {formatDuration(playerStatus.duration)}
+                </Text>
+              ) : null}
+            </View>
+            <Waveform progress={playerStatus.duration > 0 ? playerStatus.currentTime / playerStatus.duration : 0} />
           </View>
           <Pressable onPress={() => removeVoiceNote()} hitSlop={8}>
             <Ionicons name="trash-outline" size={18} color="#64748B" />
